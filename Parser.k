@@ -1,4 +1,4 @@
-module compiler
+module Compiler
 	class Parser
 		pointer as int
 

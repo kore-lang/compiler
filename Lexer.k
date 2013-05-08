@@ -1,4 +1,4 @@
-module compiler
+module Compiler
 	class Lexer
 		inString as bool
 
