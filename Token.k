@@ -19,7 +19,7 @@ module Compiler
 		Delete,		// Deletion.
 
 		ProgEnd,	// End of program/source.
-		EOL,
+		Eol,
 
 		LP,
 		RP,
@@ -57,6 +57,7 @@ module Compiler
 		String,
 
 		Array,
+		Nullable,
 
 		If,
 		Then,

@@ -7,7 +7,7 @@ module Compiler
 		/// <summary>
 		///	Indicates whether the variable is nullable or not.
 		/// </summary>
-		nullable as bool
+		isNullable as bool
 		
 		/// <summary>
 		///	Field unique ID, relative to its parent.
@@ -54,7 +54,9 @@ module Compiler
 			offset = 0
 			level = 0
 			
-			nullable = false
+			isNullable = false
+			
+			("Create field " + fieldName).print
 		end
 	end
 end

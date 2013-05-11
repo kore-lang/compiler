@@ -37,8 +37,27 @@ module Compiler
 			includeCount++
 		end
 
-		def addClass(className as string)
-//			classes(classCount)
+		def addClass(className as string) as Class
+			mclass = getClass(className)
+			if mclass == null
+				mclass = Class.new(className, this)
+				classes(classCount) = mclass
+				classCount++
+				
+				("Create class " + name + "." + className).print
+			end
+			
+			return mclass
+		end
+		
+		def getClass(className as string) as Class
+			i = 0
+			while i < classCount
+				if classes(i).name == className then return classes(i)
+				i++
+			end
+			
+			return null
 		end
 
 		def addFunction(functionName as string) as Function

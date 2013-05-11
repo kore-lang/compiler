@@ -10,6 +10,9 @@ module Compiler
 		block as Block
 
 		type as Type
+		
+		fclass as Class
+		fmodule as Module
 
 		def new(functionName as string)
 			name = functionName
@@ -25,6 +28,8 @@ module Compiler
 			isStatic = false
 
 			block = Block.new
+			
+			fmodule = functionModule
 		end
 
 		def new(functionName as string, functionModule as Module, functionClass as Class)
@@ -33,6 +38,11 @@ module Compiler
 			isStatic = false
 
 			block = Block.new
+			
+			fmodule = functionModule
+			fclass = functionClass
+			
+			("Create function " + functionName).print
 		end
 	end
 end

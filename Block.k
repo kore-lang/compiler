@@ -13,7 +13,7 @@ module Compiler
 		variableCount as int
 
 		def new
-			tokens = LexToken(1000)
+			tokens = LexToken(2000)
 			tokenCount = 0
 
 			depthes = Depth(100)

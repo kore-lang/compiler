@@ -5,17 +5,13 @@ module Compiler
 		tokens as LexToken()
 		count as int
 
-		module as Module
+		pmodule as Module
 
 		def new(lexer as Lexer)
 			tokens = lexer.tokens
 			count = lexer.pointer
 
 			pointer = 0
-		end
-
-		def parse
-			"PARSE".print
 		end
 
 		// Moves the pointer to the next token/value pair.
@@ -39,7 +35,7 @@ module Compiler
 				return tokens(index).token
 			else
 				"Internal error : token pointer out of bounds".print
-				return Token.EOL
+				return Token.Eol
 			end
 		end
 
@@ -67,7 +63,7 @@ module Compiler
 			while getToken != Token.ProgEnd
 				switch token
 					case Token.Module
-						if token(-1) == Token.EOL
+						if token(-1) == Token.Eol
 							if getToken == Token.Name
 								newModule = program.addModule(value)
 								parse(newModule)
@@ -96,7 +92,8 @@ module Compiler
 		end
 
 		def parse(currentModule as Module) as bool
-			"big".print
+			pmodule = currentModule
+		
 			while getToken != Token.ProgEnd
 				switch token
 					case Token.End then return true
@@ -110,7 +107,7 @@ module Compiler
 					end
 				
 					case Token.Def
-						if token(-1) == Token.EOL
+						if token(-1) == Token.Eol
 							if getToken == Token.Name
 								function = currentModule.addFunction(value)
 
@@ -148,24 +145,96 @@ module Compiler
 
 					case Token.Enum
 "test".print
-						if token(-1) == Token.EOL
+						if token(-1) == Token.Eol
 							if getToken == Token.Name
 								newEnum = currentModule.addEnum(value)
 							else
-								error("enum waits for a name")
+								error("'enum' waits for a name")
 							end
 						else
-							error("enum keyword out of place")
+							error("'enum' keyword out of place")
 						end
 					end
 
+					// Parsing class structure inside module.
 					case Token.Class
-						error("hey")
+						if token(-1) == Token.Eol
+							if getToken == Token.Name
+								newClass = currentModule.addClass(value)						
+								parse(newClass)
+							else
+								error("'class' waits for a name")
+							end
+						else
+							error("'class' keyword out of place")
+						end
 					end
 				end
 			end
 
 			return false
+		end
+		
+		def parse(currentClass as Class) as bool
+			while getToken != Token.ProgEnd
+				switch token
+					case Token.End 
+						return true
+					end
+					
+					// When meeting a name inside a class declaration, we create a new field.
+					case Token.Name
+						if token(-1) == Token.Eol
+							newField = currentClass.addField(value)
+							
+							// A field declaration MUST be followed by its type.
+							if getToken == Token.As
+								getToken
+								
+								newField.key = value
+								
+								getToken
+								
+								// When used as array, the level is increased.
+								if token == Token.Array
+									newField.level++
+									getToken
+								end
+								
+								// When followed by a '?', the field is set as nullable.
+								if token == Token.Nullable
+									newField.isNullable = true
+									getToken
+								end								
+							else
+								error("a class field must be followed by its type")
+							end
+						else
+						end
+					end
+					
+					case Token.Def
+						if token(-1) == Token.Eol
+							getToken
+							
+							if token == Token.Name or token == Token.New							
+								newFunction = currentClass.addFunction(value, pmodule, currentClass)
+								
+								parse(newFunction.block)
+						"huih".print
+							end
+						else
+						end
+					end
+					
+					case Token.Eol
+					end
+					
+					default
+						error("keyword out of place : " + value + " " + token.int.string)
+					end
+				end
+			end
 		end
 
 		def parse(currentEnum as Enum) as bool
@@ -178,7 +247,7 @@ module Compiler
 
 						if getToken == Token.Assign
 							currentEnum.addField(name, value.int)
-						elsif token == Token.Comma or token == Token.EOL
+						elsif token == Token.Comma or token == Token.Eol
 							currentEnum.addField(name)
 						else
 							error("enum fields must be separated by a comma")

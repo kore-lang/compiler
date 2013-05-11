@@ -4,7 +4,10 @@ module Compiler
 
 		pointer as int
 
-		code as string()
+		/// <summary>
+		/// Source code for the whole program.
+		/// </summary>
+		code as CodeLine()
 		lines as int
 
 		tokens as LexToken()
@@ -14,7 +17,7 @@ module Compiler
 		token as Token
 		value as string
 
-		def new(lexCode as string(), size as int)
+		def new(lexCode as CodeLine(), size as int)
 			inString = false
 			pointer = 0
 
@@ -27,18 +30,18 @@ module Compiler
 		def lex
 			currentLine = 0
 
-			tokens(pointer) = LexToken.new(Token.EOL, string.empty)
+			tokens(pointer) = LexToken.new(Token.Eol, string.empty, code(0))
 
 			// Going through each line of code.
 			while currentLine < lines
-				line = code(currentLine)
-
+				line = code(currentLine).text
+				
 				// Extract all tokens from the current line.
 				repeat
 					pointer++
-					tokens(pointer) = LexToken.new(getToken, value)
+					tokens(pointer) = LexToken.new(getToken, value, code(currentLine))
 					value = string.empty
-				until tokens(pointer).token == Token.EOL
+				until tokens(pointer).token == Token.Eol
 
 				currentLine++
 			end
@@ -46,14 +49,11 @@ module Compiler
 
 		// Get the next code token, ignoring spaces.
 		def getToken as Token
-			if line.length == 0
-				"END".print
-				return Token.EOL
-			end
+			if line.length == 0 then return Token.Eol
 
 			if not inString
 				line = line.leftTrim
-				if line.length == 0 then return Token.EOL
+				if line.length == 0 then return Token.Eol
 			end
 
 			next = string.empty
@@ -81,7 +81,7 @@ module Compiler
 
 				case "*" then return Token.Mul
 				case "/" 
-					if next == "/" then return Token.EOL
+					if next == "/" then return Token.Eol
 
 					return Token.Div
 				end
@@ -146,9 +146,10 @@ module Compiler
 				default
 					if ch.isAlpha or ch == "_"
 
+						// Getting the full alpha token.
 						while line.get(0).isAlpha
 							value = value + line.get(0)
-							line = line.erase(1)					
+							line = line.erase(1)						
 						end
 
 						switch value
