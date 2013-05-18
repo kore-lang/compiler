@@ -3,89 +3,91 @@ module Compiler
 	/// List of Kore tokens.
 	/// </summary>
 	enum Token
-		As,			// Typing keyword.
+		As			// Typing keyword.
 
-		Alias,		// Call redirect.
-		Def,		// Function definition.
-		Return,		// Function exit.
+		Alias		// Call redirect.
+		Def			// Function definition.
+		Return		// Function exit.
 
-		Module,		// Module.
-		Class,		// Class.
-		Enum,		// Enumeration.
+		Module		// Module.
+		Class		// Class.
+		Enum		// Enumeration.
 
-		End,		// End keyword for most code structures.
+		End			// End keyword for most code structures.
 		
-		New,		// Instanciation.
-		Delete,		// Deletion.
+		This		// This keyword for self-designation.
+		
+		New			// Instanciation.
+		Delete		// Deletion.
 
-		ProgEnd,	// End of program/source.
-		Eol,
+		ProgEnd		// End of program/source.
+		Eol
 
-		LP,
-		RP,
+		Lp
+		Rp
 
-		Comma,
+		Comma
 		Colon
 
-		Assign,
+		Assign
 	
-		Plus,
-		Minus,		
-		Mul,
-		Div,
+		Plus
+		Minus
+		Mul
+		Div
 
-		Not,
-		Or,
-		Xor,
-		And,
+		Not
+		Or
+		Xor
+		And
 
-		EQ,
-		NEQ,
-		GTE,
-		GT,
-		LTE,
-		LT
+		Eq
+		Neq
+		Gte
+		Gt
+		Lte
+		Lt
 
-		Name,
+		Name
 
-		True,
-		False,
+		True
+		False
 
-		Bool,
-		Int,
-		Float,
-		String,
+		Bool
+		Int
+		Float
+		String
 
-		Array,
-		Nullable,
+		Array
+		Nullable
 
-		If,
-		Then,
-		Elsif,
-		Else,
+		If
+		Then
+		Elsif
+		Else
 
-		Switch,
-		Case,
-		Default,
+		Switch
+		Case
+		Default
 
-		Foreach,
-		For,
-		To,
-		In,
-		Yield,
+		Foreach
+		For
+		To
+		In
+		Yield
 
-		Dot,		
+		Dot	
 
-		Do,
-		Loop,
+		Do
+		Loop
 
-		While,
+		While
 
-		Repeat,
-		Until,
+		Repeat
+		Until
 
-		Include,
-		Using,
+		Include
+		Using
 
 		Error
 	end

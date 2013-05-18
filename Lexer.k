@@ -71,10 +71,10 @@ module Compiler
 						return Token.Array
 					end
 
-					return Token.LP
+					return Token.Lp
 				end
 
-				case ")" then return Token.RP
+				case ")" then return Token.Rp
 
 				case "+" then return Token.Plus
 				case "-" then return Token.Minus
@@ -91,21 +91,21 @@ module Compiler
 				case "!" then return Token.Not
 
 				case "=" 
-					if next == "=" then return Token.EQ
+					if next == "=" then return Token.Eq
 				
 					return Token.Assign
 				end
 
 				case ">"
-					if next == "=" then return Token.GTE
+					if next == "=" then return Token.Gte
 					
-					return Token.GT
+					return Token.Gt
 				end
 
 				case "<"
-					if next == "=" then return Token.LTE
+					if next == "=" then return Token.Lte
 	
-					return Token.LT
+					return Token.Lt
 				end
 				
 				case ":" then return Token.Colon
@@ -159,7 +159,10 @@ module Compiler
 							case "class" then return Token.Class
 							case "enum" then return Token.Enum
 	
+							case "this" then return Token.This
+	
 							case "new" then return Token.New
+							case "delete" then return Token.Delete
 
 							case "def" then return Token.Def
 							case "return" then return Token.Return

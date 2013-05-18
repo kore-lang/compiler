@@ -64,7 +64,6 @@ module Compiler
 		end
 		
 		def addFunction(functionName as string, functionModule as Module, functionClass as Class) as Function
-		"test".print
 			function = getFunction(functionName)
 			if function == null
 				function = Function.new(functionName, functionModule, functionClass)

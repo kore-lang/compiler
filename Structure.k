@@ -2,7 +2,7 @@ module Compiler
 	/// <summary>
 	/// List of code structures
 	/// </summary>
-	class Structure
+	enum Structure
 			
 		/// <summary>
 		/// Class

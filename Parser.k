@@ -14,7 +14,9 @@ module Compiler
 			pointer = 0
 		end
 
-		// Moves the pointer to the next token/value pair.
+		/// <summary>
+		/// Moves the pointer to the next token/value pair and returns the result.
+		/// </summary>
 		def getToken as Token
 			if pointer < count 
 				pointer++
@@ -24,10 +26,17 @@ module Compiler
 			end
 		end
 
+		/// <summary>
+		/// Returns the current token.
+		/// </summary>
 		def token as Token
 			return tokens(pointer).token
 		end
 
+		/// <summary>
+		/// Returns a token with an offset from the current one.
+		/// </summary>
+		/// <param name="offset">Offset from the current pointer of the token to return.</param>
 		def token(offset as int) as Token
 			index = pointer + offset
 
@@ -39,6 +48,9 @@ module Compiler
 			end
 		end
 
+		/// <summary>
+		/// Returns the string value of the current token.
+		/// </summary>
 		def value as string
 			return tokens(pointer).value
 		end
@@ -59,6 +71,10 @@ module Compiler
 			//return false
 		end
 
+		/// <summary>
+		/// Whole program parser.
+		/// </summary>
+		/// <param name="program">Program to parse.</param>
 		def parse(program as Program) as bool
 			while getToken != Token.ProgEnd
 				switch token
@@ -75,6 +91,7 @@ module Compiler
 						end
 					end
 
+					// Using keyword adds a module dependance to the program.
 					case Token.Using
 						if getToken == Token.Name
 							program.addUsing(value)
@@ -82,15 +99,14 @@ module Compiler
 							error("using keyword waits for a module name")
 						end
 					end
-
-					default
-
-						//value.print
-					end
 				end
 			end
 		end
 
+		/// <summary>
+		/// Module parser.
+		/// </summary>
+		/// <param name="currentModule">Module in which one data will be added.</param>
 		def parse(currentModule as Module) as bool
 			pmodule = currentModule
 		
@@ -111,11 +127,11 @@ module Compiler
 							if getToken == Token.Name
 								function = currentModule.addFunction(value)
 
-								if getToken == Token.LP
-									if getToken != Token.RP
+								if getToken == Token.Lp
+									if getToken != Token.Rp
 										repeat
 // PARSE ARGS
-										until getToken == Token.RP
+										until getToken == Token.Rp
 
 										getToken
 									else
@@ -137,23 +153,24 @@ module Compiler
 								end
 
 								parse(function.block)
-
-"regre".print
 							end
 						end
 					end
 
+					// Module enumeration.
 					case Token.Enum
-"test".print
 						if token(-1) == Token.Eol
 							if getToken == Token.Name
 								newEnum = currentModule.addEnum(value)
+								parse(newEnum)
 							else
 								error("'enum' waits for a name")
 							end
 						else
 							error("'enum' keyword out of place")
 						end
+						
+						Console.next
 					end
 
 					// Parsing class structure inside module.
@@ -168,6 +185,8 @@ module Compiler
 						else
 							error("'class' keyword out of place")
 						end
+						
+						Console.next
 					end
 				end
 			end
@@ -195,7 +214,7 @@ module Compiler
 								
 								getToken
 								
-								// When used as array, the level is increased.
+								// When used as array, the pointer level is increased.
 								if token == Token.Array
 									newField.level++
 									getToken
@@ -213,17 +232,94 @@ module Compiler
 						end
 					end
 					
+					// Class method.
 					case Token.Def
 						if token(-1) == Token.Eol
 							getToken
 							
-							if token == Token.Name or token == Token.New							
+							if token == Token.Name or token == Token.New or token == Token.Delete or token == Token.This							
 								newFunction = currentClass.addFunction(value, pmodule, currentClass)
+						
+								// If this is a constructor, it returns an object of the current class.
+								if token == Token.New 
+									newFunction.isConstructor = true
+									newFunction.returnKey = currentClass.name
+								end
 								
+								// Destructor.
+								if token == Token.Delete then newFunction.isDestructor = true
+								
+								// Self-getter.
+								if token == Token.This then newFunction.isThis = true
+						
+								if newFunction != null
+									if getToken == Token.Lp
+										if getToken != Token.Rp
+											repeat
+												if token == Token.Name		
+
+													// Waiting for the typing of the argument.
+													if token(1) == Token.As
+														newArgument = newFunction.addArgument(value)
+														
+														getToken
+														
+														// The type name is required.
+														if getToken == Token.Name
+															newArgument.key = value
+															
+															// If the parameter is an array, we increase its level.
+															if token(1) == Token.Array
+																getToken
+																newArgument.level++
+															end
+														else
+															error("type name waited after 'as' keyword")
+														end
+													end
+													
+													// Arguments must be separated by a comma, if it's not the case, we throw an error.
+													if token(1) == Token.Comma
+														getToken
+													elsif token(1) != Token.Rp
+														error("arguments must be separated by a comma")
+													end
+												end
+											until getToken == Token.Rp
+										else
+											error("argument list is empty")
+										end
+										
+										getToken
+									else
+									"test".print
+										// No arguments : creating an empty one.
+										newArgument = newFunction.addArgument("")
+										newArgument.key = "void"
+									end
+									
+									// Typing the function's return.
+									if token == Token.As
+										if getToken == Token.Name
+											newFunction.returnKey = value
+										
+											// Array : increasing pointer level.
+											if token(1) == Token.Array
+												getToken
+												newFunction.level++
+											end
+										else
+											error("function return must be a type name")
+										end
+										
+										getToken
+									end
+								end
+						
 								parse(newFunction.block)
-						"huih".print
 							end
 						else
+							error("function name waited after 'def'")
 						end
 					end
 					
@@ -237,10 +333,13 @@ module Compiler
 			end
 		end
 
+		// Parsing enumeration content.
 		def parse(currentEnum as Enum) as bool
 			while getToken != Token.ProgEnd
 				switch token
-					case Token.End then return true
+					case Token.End 
+						return true
+					end
 		
 					case Token.Name
 						name = value

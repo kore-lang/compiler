@@ -86,18 +86,16 @@ module Compiler
 		end
 
 		def addEnum(enumName as string) as Enum
-			enum = getEnum(enumName)
-			if enum == null
-				enum = Enum.new(enumName)
-				enums(enumCount) = enum
+			menum = getEnum(enumName)
+			if menum == null
+				menum = Enum.new(enumName)
+				enums(enumCount) = menum
 				enumCount++
 			else
 				("there is already an enum with name '" + enumName + "'").print
 			end
 
-			("Create enum " + name + "." + functionName).print
-
-			return enum
+			return menum
 		end
 
 		def getEnum(enumName as string) as Enum

@@ -13,6 +13,9 @@ module Compiler
 		variableCount as int
 
 		def new
+			id = 0
+			stack = 0
+		
 			tokens = LexToken(2000)
 			tokenCount = 0
 
