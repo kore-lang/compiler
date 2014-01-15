@@ -1,43 +1,52 @@
 using Kore
 
 module Compiler
-	def main
-		code = CodeLine(2000)
-
-		i = 0
-		count = 0
-		
-		files = Directory.files("k")
-		while not files(i).isNull
-			("Loading source " + files(i)).print
-		
-			j = 0
-				
-			file = File.new(files(i), FileMode.Read)
-			
-			source = Source.new(files(i))
-			
-			while not file.eof			
-				j++
-				code(count + j - 1) = CodeLine.new(source, file.readString, j)	
-			end
-					
-			count = count + j
-			i++
-		end
+	def main	
+		program = Program.load("Compiler")
 		
 		Console.next
-		
-		("Analyzing " + count.string + " lines").print
-		
-		Console.next
+		"Loading...".print
 				
-		program = Program.new
+		program.loadSources("F:\\kore-lang\\compiler\\")
+		program.loadLibraries("F:\\JadeBasic\\JadeBasic\\JadeBasic\\Headers\\")
+			
+		program.addLibraryPath("Libraries\\DirectX9")
+		program.addLibraryPath("Libraries\\Core")
+		program.addLibraryPath("Libraries\\Windows")
 
-		lexer = Lexer.new(code, count)
+		Console.next
+		"Lexing...".print
+		
+		lexer = Lexer.new(program.lines, program.count)
 		lexer.lex
 
+		Console.next
+		"Parsing...".print
+		
 		parser = Parser.new(lexer)
 		parser.parse(program)
+		
+		appModule = program.getModule("Compiler")
+		
+		if (appModule.checkTypes)
+			appModule.linkTypes
+			
+			"Type link ok".print
+			
+			assembly = Assembly.new
+			
+			assembly.write("format MS COFF")
+			assembly.write("section '.data' data readable writeable")
+			
+			appModule.build(assembly)
+			
+			assembly.print
+			
+			program.assemble
+			program.link
+			program.execute
+		end
+		
+		//program.loadUsing
 	end
 end

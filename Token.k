@@ -90,5 +90,7 @@ module Compiler
 		Using
 
 		Error
+		
+		Static
 	end
 end

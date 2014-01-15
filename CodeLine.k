@@ -9,5 +9,9 @@ module Compiler
 			text = lineText
 			number = lineNumber
 		end
+		
+		def info
+			text.print
+		end
 	end
 end

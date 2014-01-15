@@ -107,5 +107,28 @@ module Compiler
 
 			return null
 		end
+		
+		def loadModule(loadModule as Module)
+			
+		end
+		
+		def checkTypes as bool
+			return true
+		end
+		
+		def linkTypes
+		
+		end
+		
+		def build(assembly as Assembly)
+			assembly.write("push ebp")
+			assembly.write("mov ebp,esp")
+			
+            //if (FunctionExists("main"))
+            //    assembly.Write("call " + GetFunction("main").MangledName);
+
+            assembly.write("pop ebp")
+            assembly.write("ret")
+		end
 	end
 end

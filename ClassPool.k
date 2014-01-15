@@ -7,7 +7,7 @@ module Compiler
 			classes = Class(100)
 		end
 
-		def add(poolClass as Class)
+		def addClass(poolClass as Class)
 			classes(count) = poolClass
 			count++
 		end

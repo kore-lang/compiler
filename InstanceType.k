@@ -2,11 +2,11 @@ module Compiler
 	/// <summary>
 	/// Represents an available type.
 	/// </summary>
-	class Type
+	class InstanceType
 		/// <summary>
 		/// Indicates whether the type is valid or not.
 		/// </summary>
-		isValid as bool
+		valid as bool
 		
 		/// <summary>
 		/// Unique ID for the type.
@@ -17,14 +17,5 @@ module Compiler
 		/// Type size in bytes.
 		/// </summary>
 		size as int
-		
-		name as string
-			
-		
-		def new(typeId as int, typeName as string, typeSize as int)
-			id = typeId
-			name = typeName
-			size = typeSize
-		end
 	end
 end

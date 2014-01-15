@@ -88,7 +88,12 @@ module Compiler
 					
 				case "." then return Token.Dot
 
-				case "!" then return Token.Not
+				case "!" 
+					if next == "=" then return Token.Neq
+					
+					return Token.Not
+				end
+					
 
 				case "=" 
 					if next == "=" then return Token.Eq
@@ -138,6 +143,7 @@ module Compiler
 						line = line.erase(1)
 					end
 
+					// Remove the second quotation mark.
 					if (line.length > 0) then line = line.erase(1)
 
 					return Token.String
@@ -154,6 +160,8 @@ module Compiler
 
 						switch value
 							case "end" then return Token.End
+							
+							case "alias" then return Token.Alias
 
 							case "module" then return Token.Module
 							case "class" then return Token.Class
@@ -195,6 +203,8 @@ module Compiler
 
 							case "include" then return Token.Include
 							case "using" then return Token.Using
+							
+							case "self" then return Token.Static
 
 							default then return Token.Name	
 						end

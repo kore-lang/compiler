@@ -3,7 +3,7 @@ module Compiler
 		isStatic as bool
 
 		name as string
-		alias as string
+		binding as string
 
 		returnKey as string
 
@@ -15,6 +15,9 @@ module Compiler
 		
 		arguments as Field()
 		argumentCount as int
+		
+		setterArgument as Field
+		setterTypeName as string
 		
 		isConstructor as bool
 		isDestructor as bool
@@ -32,6 +35,9 @@ module Compiler
 			
 			arguments = Field(10)
 			argumentCount = 0
+			
+			setterArgument = null
+			binding = string.empty
 		end
 
 		def new(functionName as string, functionModule as Module)
@@ -45,6 +51,9 @@ module Compiler
 			
 			arguments = Field(10)
 			argumentCount = 0
+			
+			setterArgument = null
+			binding = string.empty
 		end
 
 		def new(functionName as string, functionModule as Module, functionClass as Class)
@@ -60,7 +69,18 @@ module Compiler
 			arguments = Field(10)
 			argumentCount = 0
 			
+			setterArgument = null
+			binding = string.empty
+			
 			("Create function " + functionName).print
+		end
+		
+		def isAlias as bool
+			return binding != string.empty
+		end
+		
+		def isSetter as bool
+			return setterArgument != null
 		end
 		
 		def addArgument(argName as string) as Field

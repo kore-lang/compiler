@@ -11,6 +11,10 @@ module Compiler
 
 		variables as Variable()
 		variableCount as int
+		
+		pointer as int
+		
+		assembly as Assembly
 
 		def new
 			id = 0
@@ -24,11 +28,27 @@ module Compiler
 
 			variable = Variable(100)
 			variableCount = 0
+			
+			pointer = 0
 		end
 
 		def addToken(token as LexToken)
 			tokens(tokenCount) = token
 			tokenCount++
+		end
+		
+		def write(line as string)
+			assembly.write(line)
+		end
+		
+		def encode
+			while pointer + 1 < tokenCount
+				expression
+			end
+		end
+		
+		def expression
+			pointer = tokenCount
 		end
 	end
 end

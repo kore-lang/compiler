@@ -234,11 +234,20 @@ module Compiler
 					
 					// Class method.
 					case Token.Def
-						if token(-1) == Token.Eol
+						isFunction = false
+						isStaticFunction = false
+					
+						if (token(-1) == Token.Eol) then isFunction = true
+						if (token(-1) == Token.Static and token(-2) == Token.Eol) then isStaticFunction = true
+					
+						if isFunction or isStaticFunction
+							requireAlias = false
+							
 							getToken
 							
 							if token == Token.Name or token == Token.New or token == Token.Delete or token == Token.This							
 								newFunction = currentClass.addFunction(value, pmodule, currentClass)
+								newFunction.isStatic = isStaticFunction
 						
 								// If this is a constructor, it returns an object of the current class.
 								if token == Token.New 
@@ -292,7 +301,7 @@ module Compiler
 										
 										getToken
 									else
-									"test".print
+									
 										// No arguments : creating an empty one.
 										newArgument = newFunction.addArgument("")
 										newArgument.key = "void"
@@ -314,16 +323,41 @@ module Compiler
 										
 										getToken
 									end
+									
+									// Setter function.
+									if token == Token.Assign
+										if getToken == Token.Name
+											newFunction.setterArgument = Field.new(value)
+											
+											// Type of the argument.
+											if getToken == Token.As											
+												if getToken == Token.Name then newFunction.setterTypeName = value
+											else
+												error("assignation parameter must be explictly typed")
+											end
+										end
+									end
+									
+									// Aliasing the function.
+									if token == Token.Alias
+										if getToken == Token.String
+											newFunction.binding = value
+										else
+											error("alias argument must be a string")
+										end
+									elsif requireAlias
+										error("use of anonymous arguments implies an alias")
+									end
 								end
-						
-								parse(newFunction.block)
+							
+								if not newFunction.isAlias then parse(newFunction.block)
 							end
 						else
 							error("function name waited after 'def'")
 						end
 					end
 					
-					case Token.Eol
+					case Token.Eol, Token.Static
 					end
 					
 					default
