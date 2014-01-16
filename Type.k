@@ -3,10 +3,6 @@ module Compiler
 	/// Represents an available type.
 	/// </summary>
 	class Type
-		/// <summary>
-		/// Indicates whether the type is valid or not.
-		/// </summary>
-		isValid as bool
 		
 		/// <summary>
 		/// Unique ID for the type.
@@ -20,8 +16,22 @@ module Compiler
 		
 		name as string
 			
+		objectType as ObjectType
+				
+		/// <summary>
+		/// Indicates whether the type is valid or not.
+		/// </summary>
+		isValid as bool
+		
+		def new(typeSize as int)
+			isValid = false
+			
+			size = typeSize
+		end
 		
 		def new(typeId as int, typeName as string, typeSize as int)
+			isValid = false
+			
 			id = typeId
 			name = typeName
 			size = typeSize

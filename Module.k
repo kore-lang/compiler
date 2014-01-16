@@ -13,6 +13,9 @@ module Compiler
 
 		enums as Enum()
 		enumCount as int
+		
+		types as Type()
+		typeCount as int
 
 		def new(moduleName as string)
 			name = moduleName
@@ -29,14 +32,68 @@ module Compiler
 			enums = Enum(100)
 			enumCount = 0
 
-			("Create module " + name).print
+			types = Type(100)
+			typeCount = 0
+			
+			loadBaseTypes
+			
+			("Module : " + qualifiedName).print
+		end
+		
+		def qualifiedName as string
+			return name
+		end
+				
+		def loadBaseTypes
+			addClass(Class.new("void", this), Type.new(4))
+			addClass(Class.new("bool", this), Type.new(1))
+			addClass(Class.new("byte", this), Type.new(1))
+			addClass(Class.new("char", this), Type.new(1))
+			addClass(Class.new("int", this), Type.new(4))
+			addClass(Class.new("long", this), Type.new(8))
+			addClass(Class.new("float", this), Type.new(4))
+			addClass(Class.new("double", this), Type.new(8))
+			addClass(Class.new("string", this), Type.new(4))
+			addClass(Class.new("entity", this), Type.new(4))
+		end
+		
+		def createType(typeName as string) as Type
+			type = Type.new(typeCount, typeName, 4)
+			types(typeCount) = type
+			typeCount++
+			return type
+		end
+		
+		def getType(typeName as string) as Type
+			i = 0
+			while i < typeCount
+				if types(i).name == typeName then return types(i)
+				i++
+			end
+			
+			return null
 		end
 
 		def addInclude(includeName as string)
 			includes(includeCount) = includeName
 			includeCount++
 		end
+		
+		def addClass(mclass as Class, type as Type)
+			classes(classCount) = mclass
+			classCount++
+			
+			mclass.type = type
+			
+			type.id = typeCount
+			type.name = mclass.name
+			type.objectType = ObjectType.Class
+			
+			types(typeCount) = type
+			typeCount++
+		end
 
+		// Adds a new class to the module if possible.
 		def addClass(className as string) as Class
 			mclass = getClass(className)
 			if mclass == null
@@ -44,7 +101,11 @@ module Compiler
 				classes(classCount) = mclass
 				classCount++
 				
-				("Create class " + name + "." + className).print
+				// Creates a type for the class.
+				type = createType(className)
+				type.objectType = ObjectType.Class
+				
+				mclass.type = type
 			end
 			
 			return mclass
@@ -67,12 +128,20 @@ module Compiler
 				functions(functionCount) = function
 				functionCount++
 			else
-				("there is already a function with name '" + functionName + "'").print
+				("there is already a function '" + functionName + "' in " + qualifiedName).print
 			end
 
-			("Create function " + name + "." + functionName).print
-
 			return function
+		end
+
+		def	hasFunction(functionName as string) as bool
+			i = 0
+			while i < functionCount
+				if functions(i).name == functionName then return true
+				i++
+			end
+			
+			return false
 		end
 
 		def getFunction(functionName as string) as Function
@@ -91,8 +160,13 @@ module Compiler
 				menum = Enum.new(enumName)
 				enums(enumCount) = menum
 				enumCount++
+				
+				type = createType(enumName)
+				type.objectType = ObjectType.Enumeration
+				
+				menum.type = type
 			else
-				("there is already an enum with name '" + enumName + "'").print
+				("there is already an enum '" + enumName + "' in " + qualifiedName).print
 			end
 
 			return menum
@@ -117,18 +191,68 @@ module Compiler
 		end
 		
 		def linkTypes
-		
+			linked = 0
+						
+			while linked < typeCount			
+				linked = 0
+				
+				// Type linking with code structures.
+				i = 0
+				while i < typeCount
+					if not types(i).isValid
+						if types(i).objectType == ObjectType.Enumeration
+							types(i).isValid = true
+						else
+							getClass(types(i).name).linkTypes
+						end						
+					end
+					i++
+				end
+				
+				// Counting linked types.
+				i = 0
+				while i < typeCount
+					if types(i).isValid then linked = linked + 1
+					i++
+				end
+			end
+
+			// Linking module functions.
+			i = 0
+			while i < functionCount
+				functions(i).linkTypes
+				i++
+			end
 		end
 		
 		def build(assembly as Assembly)
 			assembly.write("push ebp")
 			assembly.write("mov ebp,esp")
 			
-            //if (FunctionExists("main"))
-            //    assembly.Write("call " + GetFunction("main").MangledName);
+            if this.hasFunction("main") then assembly.write("call " + getFunction("main").mangledName)
 
             assembly.write("pop ebp")
             assembly.write("ret")
+			
+			i = 0
+			while i < functionCount
+				if not functions(i).isAlias then functions(i).build(assembly)
+				i++
+			end
+			
+			i = 0
+			while i < classCount
+				classes(i).build(assembly)
+				i++
+			end
+		end
+		
+		def	appendCallCode(assembly as Assembly)
+			i = 0
+			while i < classCount
+				classes(i).appendCallCode(assembly)
+				i++
+			end
 		end
 	end
 end

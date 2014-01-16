@@ -8,7 +8,7 @@ module Compiler
 		/// Class
 		/// </summary>
 		Class,
-		Enum,
+		Enumeration,
 		Module
 	end
 end

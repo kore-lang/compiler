@@ -1,12 +1,14 @@
 module Compiler
 	class Source
 		fileName as string
+		name as string
 		
 		lines as CodeLine()
 		lineCount as int
 		
 		def new(sourceFile as string)
 			fileName = sourceFile
+			name = fileName.lastSegment("\\")
 			
 			lines = CodeLine(1000)
 			lineCount = 0

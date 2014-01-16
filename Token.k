@@ -50,8 +50,7 @@ module Compiler
 
 		Name
 
-		True
-		False
+		Boolean
 
 		Bool
 		Int

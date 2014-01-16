@@ -23,6 +23,9 @@ module Compiler
 		/// Current field count.
 		/// </summary>
 		fieldCount as int
+		
+		
+		type as Type
 
 		/// <summary>
 		/// Creates a new enum from its name.

@@ -20,5 +20,17 @@ module Compiler
 				i++
 			end
 		end
+		
+		def save(fileName as string)
+			file = File.new(fileName, FileMode.Write)
+		
+			i = 0
+			while i < lineCount
+				file.write(lines(i) + string.newLine)
+				i++
+			end
+			
+			file.close
+		end
 	end
 end

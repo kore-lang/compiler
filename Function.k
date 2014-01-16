@@ -1,10 +1,9 @@
 module Compiler
-	class Function
-		isStatic as bool
-
+	class Function				
 		name as string
 		binding as string
 
+		returnArgument as Field
 		returnKey as string
 
 		block as Block
@@ -19,49 +18,60 @@ module Compiler
 		setterArgument as Field
 		setterTypeName as string
 		
-		isConstructor as bool
-		isDestructor as bool
-		isThis as bool
-		
 		fclass as Class
 		fmodule as Module
+		
+		isConstructor as bool
+		isDestructor as bool
+		isThis as bool		
+		isStatic as bool
+		isUsed as bool
+		isCompiled as bool
 
 		def new(functionName as string)
+			isStatic = false
+			
 			name = functionName
 
-			isStatic = false
-
-			block = Block.new
+			block = Block.new(this)
+			
+			fmodule = null
+			fclass = null
 			
 			arguments = Field(10)
 			argumentCount = 0
 			
 			setterArgument = null
 			binding = string.empty
+			
+			("Function : " + qualifiedName).print
 		end
 
 		def new(functionName as string, functionModule as Module)
+			isStatic = false
+			
 			name = functionName
 
-			isStatic = false
-
-			block = Block.new
+			block = Block.new(this)
 			
 			fmodule = functionModule
+			fclass = null
 			
 			arguments = Field(10)
 			argumentCount = 0
 			
 			setterArgument = null
 			binding = string.empty
+			
+			("Function : " + qualifiedName).print
 		end
 
 		def new(functionName as string, functionModule as Module, functionClass as Class)
-			name = functionName
-
 			isStatic = false
 
-			block = Block.new
+			name = functionName
+
+			block = Block.new(this)
 			
 			fmodule = functionModule
 			fclass = functionClass
@@ -72,7 +82,23 @@ module Compiler
 			setterArgument = null
 			binding = string.empty
 			
-			("Create function " + functionName).print
+			("Function : " + qualifiedName).print
+		end
+		
+		def mangledName as string
+			mangling = "def_" + qualifiedName
+			mangling = mangling.replace(".", "_")
+			mangling = mangling.lower
+			
+			return mangling
+		end
+		
+		def qualifiedName as string
+			if fclass == null
+				return fmodule.qualifiedName + "." + name
+			else
+				return fclass.qualifiedName + "." + name
+			end
 		end
 		
 		def isAlias as bool
@@ -104,6 +130,35 @@ module Compiler
 			end
 			
 			return null
+		end
+		
+		def linkTypes
+			i = 0
+			while i < argumentCount
+				arguments(i).type = fmodule.getType(arguments(i).key)
+				i++
+			end
+			
+			
+		end
+		
+		def build(assembly as Assembly)
+			loadVariables
+			
+			assembly.write(mangledName + ":")
+			assembly.write("push ebp")
+			assembly.write("mov ebp,esp")
+			
+			block.build(assembly)
+			
+			assembly.write("pop ebp")
+			assembly.write("ret")
+			
+			isCompiled = true
+		end
+		
+		def loadVariables
+		
 		end
 	end
 end

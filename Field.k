@@ -2,13 +2,7 @@ module Compiler
 	/// <summary>
 	/// Represents a memory field of a structure.
 	/// </summary>
-	class Field
-	
-		/// <summary>
-		///	Indicates whether the variable is nullable or not.
-		/// </summary>
-		isNullable as bool
-		
+	class Field		
 		/// <summary>
 		///	Field unique ID, relative to its parent.
 		/// </summary>
@@ -28,12 +22,7 @@ module Compiler
 		///	Define if the variable is nullable or not.
 		/// </summary>
 		order as int
-				
-		/// <summary>
-		/// String key of the type of the variable before type linking.
-		/// </summary>
-		key as string
-		
+						
 		/// <summary>
 		///	Variable's name.
 		/// </summary>
@@ -43,11 +32,14 @@ module Compiler
 		/// Type of the variable.
 		/// </summary>
 		type as Type
+		key as string
 		
+		fclass as Class		
+	
 		/// <summary>
-		///	Simple constructor with field name.
+		///	Indicates whether the variable is nullable or not.
 		/// </summary>
-		/// <param name="fieldName">Name of the field to create.</param>
+		isNullable as bool
 		def new(fieldName as string)
 			name = fieldName
 			
@@ -56,7 +48,28 @@ module Compiler
 			
 			isNullable = false
 			
-			("Create field " + fieldName).print
+			fclass = null
+		end
+		
+		/// <summary>
+		///	Simple constructor with field name.
+		/// </summary>
+		/// <param name="fieldName">Name of the field to create.</param>
+		def new(fieldName as string, fieldClass as Class)
+			name = fieldName
+			
+			offset = 0
+			level = 0
+			
+			isNullable = false
+			
+			fclass = fieldClass
+			
+			("Field : " + qualifiedName).print
+		end
+		
+		def qualifiedName as string
+			if fclass != null then return fclass.qualifiedName + "." + name
 		end
 	end
 end

@@ -239,7 +239,7 @@ module Compiler
 					
 						if (token(-1) == Token.Eol) then isFunction = true
 						if (token(-1) == Token.Static and token(-2) == Token.Eol) then isStaticFunction = true
-					
+
 						if isFunction or isStaticFunction
 							requireAlias = false
 							
@@ -247,8 +247,9 @@ module Compiler
 							
 							if token == Token.Name or token == Token.New or token == Token.Delete or token == Token.This							
 								newFunction = currentClass.addFunction(value, pmodule, currentClass)
+								
 								newFunction.isStatic = isStaticFunction
-						
+								
 								// If this is a constructor, it returns an object of the current class.
 								if token == Token.New 
 									newFunction.isConstructor = true
@@ -349,7 +350,7 @@ module Compiler
 										error("use of anonymous arguments implies an alias")
 									end
 								end
-							
+								
 								if not newFunction.isAlias then parse(newFunction.block)
 							end
 						else
@@ -393,8 +394,9 @@ module Compiler
 		end
 
 		def parse(currentBlock as Block) as bool
+			currentBlock.addToken(LexToken.new(Token.Eol, string.empty))
+		
 			depth = 0
-
 			while getToken != Token.ProgEnd
 				switch token
 					case Token.Then, Token.End, Token.Until

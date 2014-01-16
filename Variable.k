@@ -3,21 +3,7 @@ module Compiler
 	/// Representation of a block variable.
 	/// </summary>
 	class Variable
-			
-		/// <summary>
-		/// Indicates if the variable is assigned.
-		/// </summary>
-		assigned as bool
-		
-		/// <summary>
-		/// Indicates if the variable is nullable.
-		/// </summary>
-		nullable as bool
-				
-		/// <summary>
-		/// Indicates if the variable is used.
-		/// </summary>
-		used as bool
+		name as string
 		
 		/// <summary>
 		/// Memory offset of the variable in its parent context.
@@ -33,5 +19,20 @@ module Compiler
 		/// Variable's type.
 		/// </summary>
 		type as Type
+			
+		/// <summary>
+		/// Indicates if the variable is assigned.
+		/// </summary>
+		isAssigned as bool
+		
+		/// <summary>
+		/// Indicates if the variable is nullable.
+		/// </summary>
+		isNullable as bool
+				
+		/// <summary>
+		/// Indicates if the variable is used.
+		/// </summary>
+		isUsed as bool
 	end
 end

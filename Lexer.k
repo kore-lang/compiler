@@ -193,8 +193,8 @@ module Compiler
 							case "repeat" then return Token.Repeat
 							case "until" then return Token.Until
 
-							case "true" then return Token.True
-							case "false" then return Token.False
+							case "true" then return Token.Boolean
+							case "false" then return Token.Boolean
 
 							case "not" then return Token.Not
 							case "or" then return Token.Or

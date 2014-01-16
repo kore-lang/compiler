@@ -8,8 +8,6 @@ module Compiler
 		functions as Function()
 		functionCount as int
 
-		assembly as string()
-
 		cmodule as Module
 
 		contentKey as string
@@ -17,6 +15,12 @@ module Compiler
 
 		inheritKey as string
 		inheritType as Type
+		
+		// Class type.
+		type as Type
+		
+		// Size of the class on the heap.
+		size as int
 
 		def new(className as string, classModule as Module)
 			name = className	
@@ -27,6 +31,8 @@ module Compiler
 			
 			functions = Function(100)
 			functionCount = 0
+			
+			("Class : " + qualifiedName).print
 		end
 
 		def new(className as string, classType as Type)
@@ -38,14 +44,18 @@ module Compiler
 			
 			functions = Function(100)
 			functionCount = 0
-			
-			("Create class " + className).print
+						
+			("Class : " + qualifiedName).print
+		end
+		
+		def qualifiedName as string
+			return cmodule.qualifiedName + "." + name
 		end
 		
 		def addField(fieldName as string) as Field
 			field = getField(fieldName)
 			if field == null
-				field = Field.new(fieldName)
+				field = Field.new(fieldName, this)
 				fields(fieldCount) = field
 				fieldCount++
 			end
@@ -64,14 +74,9 @@ module Compiler
 		end
 		
 		def addFunction(functionName as string, functionModule as Module, functionClass as Class) as Function
-			function = getFunction(functionName)
-			if function == null
-				function = Function.new(functionName, functionModule, functionClass)
-				functions(functionCount) = function
-				functionCount++
-			else
-				"func exists".print
-			end
+			function = Function.new(functionName, functionModule, functionClass)
+			functions(functionCount) = function
+			functionCount++
 			
 			return function
 		end
@@ -79,11 +84,55 @@ module Compiler
 		def getFunction(functionName as string) as Function
 			i = 0
 			while i < functionCount
-				if functions(i).name == functionName return functions(i)
+				if functions(i).name == functionName then return functions(i)
 				i++
 			end
 			
 			return null
+		end
+		
+		def linkTypes			
+			// Associate each field with its type.
+			i = 0
+			while i < fieldCount
+				fields(i).type = cmodule.getType(fields(i).key)
+				i++
+			end
+						
+			// Compute field offset.
+			i = 0
+			while i < fieldCount
+				fields(i).offset = size
+				size = size + fields(i).type.size
+				i++
+			end
+			
+			// Function linking.
+			i = 0
+			while i < functionCount
+				functions(i).linkTypes
+				i++
+			end
+			
+			type.isValid = true
+		end
+		
+		def build(assembly as Assembly)
+			i = 0
+			while i < functionCount
+				if not functions(i).isAlias then functions(i).build(assembly)
+				i++
+			end
+		end
+		
+		def appendCallCode(assembly as Assembly)
+			i = 0
+			while i < functionCount
+				if functions(i).isUsed and functions(i).isAlias 
+					assembly.write("extrn '" + functions(i).binding + "' as " + functions(i).mangledName + ":dword")
+				end
+				i++
+			end
 		end
 	end
 end

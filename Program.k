@@ -128,16 +128,6 @@ module Compiler
 			("Using " + usingName).print
 		end
 		
-		def loadBaseTypes
-			pool.addClass(Class.new("void", Type.new(BaseType.Void.int, "void", 0)))
-		//	pool.addClass(Class.new("bool", Type.new(1, "void", 0)))
-		//	pool.addClass(Class.new("void", Type.new(2, "void", 0)))
-		//	pool.addClass(Class.new("void", Type.new(3, "void", 0)))
-		//	pool.addClass(Class.new("void", Type.new(4, "void", 0)))
-		//	pool.addClass(Class.new("void", Type.new(5, "void", 0)))
-		//	pool.addClass(Class.new("void", Type.new(6, "void", 0)))
-		end
-		
 		def loadUsing
 			i = 0
 			j = 0
