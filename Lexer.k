@@ -67,7 +67,7 @@ module Compiler
 			switch ch
 				case "(" 
 					if next == ")"
-						line.erase(1)
+						line = line.erase(1)
 						return Token.Array
 					end
 
@@ -122,10 +122,10 @@ module Compiler
 
 					while line.get(0).isNumeric
 						value = value + line.get(0)
-						line = line.erase(1)
+						//line = line.erase(1)
 					end
 
-					return Token.Int
+					return Token.Integer
 				end
 
 				case "\""

@@ -9,6 +9,8 @@ module Compiler
 		/// Memory offset of the variable in its parent context.
 		/// </summary>
 		offset as int
+		
+		level as int
 				
 		/// <summary>
 		/// Variable's scope.
@@ -34,5 +36,9 @@ module Compiler
 		/// Indicates if the variable is used.
 		/// </summary>
 		isUsed as bool
+		
+		def new(variableName as string)
+			name = variableName
+		end
 	end
 end

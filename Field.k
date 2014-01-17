@@ -71,5 +71,16 @@ module Compiler
 		def qualifiedName as string
 			if fclass != null then return fclass.qualifiedName + "." + name
 		end
+		
+		// Create an instance variable from the field.
+		def createVariable as Variable
+			variable = Variable.new(name)
+			variable.type = type
+			variable.offset = offset
+			variable.level = level
+			variable.scope = Scope.Instance
+			
+			return variable
+		end
 	end
 end

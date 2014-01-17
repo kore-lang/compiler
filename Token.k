@@ -53,7 +53,7 @@ module Compiler
 		Boolean
 
 		Bool
-		Int
+		Integer
 		Float
 		String
 

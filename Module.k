@@ -19,7 +19,7 @@ module Compiler
 
 		def new(moduleName as string)
 			name = moduleName
-
+			
 			classes = Class(100)
 			classCount = 0
 
@@ -34,9 +34,7 @@ module Compiler
 
 			types = Type(100)
 			typeCount = 0
-			
-			loadBaseTypes
-			
+						
 			("Module : " + qualifiedName).print
 		end
 		
@@ -64,6 +62,11 @@ module Compiler
 			return type
 		end
 		
+		def addType(type as Type)
+			types(typeCount) = type
+			typeCount++
+		end
+		
 		def getType(typeName as string) as Type
 			i = 0
 			while i < typeCount
@@ -73,10 +76,37 @@ module Compiler
 			
 			return null
 		end
+		
+		def typeExists(typeName as string) as bool
+			i = 0
+			while i < typeCount
+				if types(i).name == typeName then return true
+				i++
+			end
+			
+			return false
+		end
 
 		def addInclude(includeName as string)
 			includes(includeCount) = includeName
 			includeCount++
+		end
+		
+		def includeString as string
+			inc = string.empty
+			
+			i = 0
+			while i < includeCount
+				inc = inc + " " + includes(i)
+				i++
+			end
+			
+			return inc
+		end
+		
+		def addClass(moduleClass as Class)
+			classes(classCount) = moduleClass
+			classCount++
 		end
 		
 		def addClass(mclass as Class, type as Type)
@@ -133,6 +163,11 @@ module Compiler
 
 			return function
 		end
+		
+		def addFunction(function as Function)
+			functions(functionCount) = function
+			functionCount++
+		end
 
 		def	hasFunction(functionName as string) as bool
 			i = 0
@@ -171,6 +206,11 @@ module Compiler
 
 			return menum
 		end
+		
+		def addEnum(moduleEnum as Enum)
+			enums(enumCount) = moduleEnum
+			enumCount++
+		end
 
 		def getEnum(enumName as string) as Enum
 			i = 0
@@ -182,8 +222,43 @@ module Compiler
 			return null
 		end
 		
-		def loadModule(loadModule as Module)
+		def loadModule(sourceModule as Module)
+			i = 0
+			while i < sourceModule.typeCount
+				t = sourceModule.types
+				addType(t(i))
+				i++
+			end
 			
+			i = 0
+			while i < sourceModule.classCount
+				c = sourceModule.classes
+				addClass(c(i))
+				i++
+			end
+			
+			i = 0
+			while i < sourceModule.functionCount
+				f = sourceModule.functions
+				addFunction(f(i))
+				i++
+			end
+			
+			i = 0
+			while i < sourceModule.enumCount
+				e = sourceModule.enums
+				addEnum(e(i))
+				i++
+			end
+						
+			i = 0
+			while i < sourceModule.includeCount
+				n = sourceModule.includes
+				addInclude(n(i))
+				i++
+			end
+			
+			("Module loaded : " + sourceModule.qualifiedName).print
 		end
 		
 		def checkTypes as bool
@@ -245,6 +320,8 @@ module Compiler
 				classes(i).build(assembly)
 				i++
 			end
+			
+			appendCallCode(assembly)
 		end
 		
 		def	appendCallCode(assembly as Assembly)

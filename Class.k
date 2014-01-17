@@ -73,6 +73,16 @@ module Compiler
 			return null
 		end
 		
+		def fieldExists(fieldName as string) as bool
+			i = 0
+			while i < fieldCount
+				if fields(i).name == fieldName then return true
+				i++
+			end
+			
+			return false
+		end
+		
 		def addFunction(functionName as string, functionModule as Module, functionClass as Class) as Function
 			function = Function.new(functionName, functionModule, functionClass)
 			functions(functionCount) = function
@@ -89,6 +99,31 @@ module Compiler
 			end
 			
 			return null
+		end
+		
+		def getFunction(functionName as string, types as Type(), typeCount as int) as Function
+			i = 0
+			while i < functionCount
+				if functions(i).name == functionName 
+					functionName.print
+					if functions(i).acceptTypes(types, typeCount) == true
+						return functions(i)
+					end
+				end
+				i++
+			end
+			
+			return null
+		end
+		
+		def functionExists(functionName as string) as bool
+			i = 0
+			while i < functionCount
+				if functions(i).name == functionName then return true
+				i++
+			end
+			
+			return false
 		end
 		
 		def linkTypes			
@@ -117,6 +152,7 @@ module Compiler
 			type.isValid = true
 		end
 		
+		// Build the class content.
 		def build(assembly as Assembly)
 			i = 0
 			while i < functionCount

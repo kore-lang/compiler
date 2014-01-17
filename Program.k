@@ -21,6 +21,8 @@ module Compiler
 		sourceCount as int
 		
 		count as int
+		
+		includeString as string
 
 		def new(appName as string, appPath as string)
 			name = appName
@@ -41,6 +43,8 @@ module Compiler
 			sourceCount = 0
 			
 			count = 0
+			
+			addModule("Kore").loadBaseTypes
 			
 			("Create program " + name).print
 		end
@@ -120,6 +124,10 @@ module Compiler
 
 			return null
 		end
+		
+		def getAppModule as Module
+			return getModule(name.upperFirst)
+		end
 
 		// Add a module name.
 		def addUsing(usingName as string)
@@ -128,19 +136,16 @@ module Compiler
 			("Using " + usingName).print
 		end
 		
-		def loadUsing
+		def loadUsing(appModule as Module)
 			i = 0
 			j = 0
-			usings(0).print
 			
 			while i < usingCount
-				usings(i).print
-				while j < moduleCount
-					if usings(i) == modules(j).name
-						("load " + modules(j).name + " into " + modules(0).name).print
-						modules(0).loadModule(modules(j))
-					end
-					j++
+				sourceModule = getModule(usings(i))
+				if sourceModule != null
+					appModule.loadModule(sourceModule)
+				else
+					("there is no module " + usings(i)).print
 				end
 				i++
 			end
@@ -150,18 +155,24 @@ module Compiler
 			
 		end
 		
-		def assemble
+		def assemble(assembler as string, assembly as Assembly)
+			Console.next
 			"Assembling...".print
 			
-			fileName = path + "/" + name + ".asm"
-			fileName.print
+			fileName = path + "\\" + name + ".asm"
+			
+			assembly.save(fileName)
+			
+			// Execute the selected assembler.
+			process = Process.new(assembler)
+			process.execute(fileName)
 		end
 		
-		def link
+		def link(linker as string)
+			Console.next
 			"Linking...".print
 			
-			command = path + "/" + name + ".obj"
-			command.print
+			command = path + "\\" + name + ".obj"
 			
 			i = 0
 			
@@ -173,19 +184,31 @@ module Compiler
 			command = command + " Core\\Jade_Core.obj"
             command = command + " Core\\Jade_String.lib"
             command = command + " Core\\Kore_Int.lib"
-            command = command + " Core\\Kore_Directory.lib "
+			
+			command = command + includeString
 			
 			command = command + " /SUBSYSTEM:CONSOLE /FORCE:MULTIPLE"
-			
-			command.print
+												
+			// Execute the linker
+			process = Process.new(linker, "F:\\JadeBasic\\JadeBasic\\JadeBasic\\")
+			process.execute(command)
 		end
 		
 		def execute
+			Console.next
 			"Executing...".print
+						
+			fileName = path + "\\" + name + ".exe"
+			
+			// Execute the program.
+			process = Process.new(fileName, path)
+			process.execute(string.empty)
 		end
 		
 		self def load(appPath as string) as Program
-			return Program.new(appPath, appPath)
+			program = Program.new(appPath.lastSegment("\\"), appPath)
+			program.loadSources(appPath + "\\")
+			return program
 		end
 	end
 end

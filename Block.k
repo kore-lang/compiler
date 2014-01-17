@@ -2,6 +2,8 @@ module Compiler
 	class Block
 		id as int
 		stack as int
+		
+		pointer as int
 
 		tokens as LexToken()
 		tokenCount as int
@@ -11,8 +13,6 @@ module Compiler
 
 		variables as Variable()
 		variableCount as int
-		
-		pointer as int
 		
 		assembly as Assembly
 		
@@ -31,7 +31,7 @@ module Compiler
 			depthes = Depth(100)
 			depthCount = 0
 
-			variable = Variable(100)
+			variables = Variable(100)
 			variableCount = 0
 			
 			strings = string(200)
@@ -42,15 +42,74 @@ module Compiler
 			bfunction = blockFunction
 		end
 		
+		def container as Module
+			return bfunction.fmodule
+		end
+		
+		def createVariable(name as string, type as Type, level as int) as Variable
+			variable as Variable
+			variable = null
+			
+			if !variableExists(name)
+				variable = Variable.new(name)
+				variable.type = type
+				
+				stack = stack + type.size
+				
+				variable.offset = stack
+				variable.level = level
+				variable.scope = Scope.Local
+				
+				variables(variableCount) = variable
+				variableCount++
+			else
+				error("there is already a variable " + name)
+			end
+			
+			return variable
+		end
+		
+		def createInstanceVariable(field as Field) as Variable
+			variable = field.createVariable
+			
+			variables(variableCount) = variable
+			variableCount++
+			
+			return variable
+		end
+		
+		def createArgumentVariable(name as string, type as Type, level as int, offset as int) as Variable
+			variable = Variable.new(name)
+			variable.type = type
+			variable.offset = offset
+			variable.level = level
+			variable.scope = Scope.Local
+			
+			variables(variableCount) = variable
+			variableCount++
+			
+			return variable
+		end
+		
 		// Check if the variable exists or not.
-		def variableExists(variableName as string) as bool
+		def variableExists(name as string) as bool
 			i = 0
 			while i < variableCount
-				if variables(i).name == variableName then return true
+				if variables(i).name == name then return true
 				i++
 			end
 			
 			return false
+		end
+		
+		def getVariable(name as string) as Variable
+			i = 0
+			while i < variableCount
+				if variables(i).name == name then return variables(i)
+				i++
+			end
+			
+			return null
 		end
 		
 		def addString(str as string) as int
@@ -70,6 +129,10 @@ module Compiler
 			return bfunction.fmodule.getType(typeName)
 		end
 		
+		def typeExists(typeName as string) as bool
+			return bfunction.fmodule.typeExists(typeName)
+		end
+		
 		def build(blockAssembly as Assembly)
 			assembly = blockAssembly
 							
@@ -81,7 +144,6 @@ module Compiler
 		end
 		
 		def parseAndAssemble
-			return
 			while pointer + 1 < tokenCount
 				expression(true, Context.new(getType("void")))
 			end
@@ -92,7 +154,6 @@ module Compiler
 			t = tokenCount - 1
 			if pointer < t
 				pointer++
-				("-> " + value).print
 				return tokens(pointer).token
 			end
 			
@@ -105,7 +166,7 @@ module Compiler
 		end
 		
 		// Current token with an offset.
-		def token(offset as int) as Token
+		def token(offset as int) as Token		
 			if pointer + offset >= 0 and pointer + offset < tokenCount then return tokens(pointer + offset).token
 			
 			return Token.ProgEnd
@@ -113,6 +174,7 @@ module Compiler
 				
 		// Returns the current value.
 		def value as string
+		
 			return tokens(pointer).value
 		end
 		
@@ -121,9 +183,9 @@ module Compiler
 		end
 				
 		// Parse expression.
-		def expression(nextToken as bool, context as Context) as Context
+		def expression(nextToken as bool, context as Context) as Context		
 			andExpression(nextToken, context)
-						
+			
 			do
 				switch token
 					case Token.Or
@@ -180,22 +242,22 @@ module Compiler
 						Term(true, Context.new(context))
 						write("pop ebx")
 						
-						switch context.type.id
-							case BaseType.Int.int then write("add eax,ebx")
+						 switch context.type.id
+							 case BaseType.Int.int then write("add eax,ebx")
 							
-							case BaseType.Float.int then write("faddp st1,st0")
+							 case BaseType.Float.int then write("faddp st1,st0")
 							
-							case BaseType.String.int
-								write("push eax")
-								write("push ebx")
-								write("call _add_string")
-								write("add esp,8")		
-							end
-						end
+							 case BaseType.String.int
+								 write("push eax")
+								 write("push ebx")
+								 write("call _add_string")
+								 write("add esp,8")		
+							 end
+						 end
 					end
 					
-					case Token.Minus
-					end
+					// case Token.Minus
+					// end
 					
 					case Token.Assign
 						if context.isAssignable
@@ -203,14 +265,12 @@ module Compiler
 							
                             // Keep the type of the expression result to assign.
 							write("push eax")
-							type = expression(true, Context.new(context)).type
+							expression(true, Context.new(context))
 							write("mov ebx,eax")
 							write("pop eax")
 							
                             // Use this type if the local context is not strongly typed.
 							if context.type.id == BaseType.Void.int then context.type = type
-							
-							
 						else
 							error("can not assign in this context")
 						end
@@ -226,16 +286,52 @@ module Compiler
 			
 			do
 				switch token
-				
+					case Token.Dot
+						switch context.type.objectType
+							// Analyzing an enumeration post-dot element.
+							case ObjectType.Enumeration
+							end
+							
+							// Analyzing a class post-dot element.
+							case ObjectType.Class
+								getToken								
+								baseClass = container.getClass(context.type.name)
+								
+								isNew = false
+								
+								// Code for instancier call.
+								if token == Token.New
+									isNew = true
+								end
+								
+								// Pointer indirection if needed.
+								if level > 0
+					//				write("mov eax,[eax]")
+								end
+								
+								// Checking if we're trying to convert.
+								if typeExists(value)
+									"CONVEEEEEEEERTING".print
+								elsif baseClass.fieldExists(value)
+								
+								"FIEEEEEEELD".print
+								
+								elsif baseClass.functionExists(value)
+									call(context, baseClass, value)
+								else
+									if !isNew then error("class " + baseClass.name + " has no element " + value)
+								end
+							end
+						end
+					end
+					
 					default then return context
 				end
 			loop
 		end
 		
 		def primary(nextToken as bool, context as Context) as Context
-			if nextToken.int > 0
-				getToken
-			end
+			if nextToken.int > 0 then getToken
 			
 			switch token
 				case Token.Boolean
@@ -247,61 +343,120 @@ module Compiler
 						write("mov eax,0")
 					end
 					
-					if token(1) != Token.Case then getToken
+					if token(-1) != Token.Case then getToken
 					
 					overType(context, "bool")
+				end
+				
+				case Token.Integer
+					write("mov ebx,eax")
+					write("mov eax," + value)
+					
+					//switch context.type.id
+					//end
+					
+					if token(-1) != Token.Case then getToken
+					
+					overType(context, "int")
 				end
 				
 				case Token.String
 					write("mov ebx,eax")
 					write("mov eax,_S" + addString(value).string)
 					
-					if token(1) != Token.Case then getToken
+					if token(-1) != Token.Case then getToken
 					
 					overType(context, "string")
 				end
-				
-				case Token.Name
-					arrayDeclaration = false
-					variableDeclaration = false
-					inDeclaration = false
-				
-					variableName = value
-					variable = null
-				
-					// Creates the variable if it does not exist.
-					if not variableExists(variableName)
-						variableDeclaration = true
-						
-						// Explicit variable typing
-						if token(1) == Token.As
-							getToken
-							
-							// Variable's type.
-							if getToken == Token.Name
-								type = getType(value)
 								
-								// Array declaration.
-								if token(1) == Token.Lp
-									arrayDeclaration = true
+				case Token.Name
+					name = value
+					
+				name.print
+					// Loading the type as the current one. 
+					if typeExists(name)
+						type = getType(name)
+						
+						// Array instanciation
+						if getToken == Token.Lp
+						else
+							context.type = type
+						end
+						
+					// If nothing works, check variables.
+					else
+						arrayDeclaration = false
+						variableDeclaration = false
+						inDeclaration = false
+					
+						variable as Variable
+						variable = null
+						
+						// If there isn't any variable of this name, try to create it.
+						if not variableExists(name)
+							variableDeclaration = true
+							
+							// Explicit variable typing
+							if token(1) == Token.As
+								getToken
+								
+								// Variable's type.
+								if getToken == Token.Name
+									type = getType(value)
 									
-									if token(2)
-										expression(false, Context.new(context))
-									end								
-								elsif token(1) == Token.Dot
-									write("mov ebx,eax")
-									expression(true, Context.new(context))
-									write("mov [ebx],eax")
+									// Array declaration.
+									if token(1) == Token.Lp
+										 arrayDeclaration = true
+										
+										if token(2)
+											expression(false, Context.new(context))
+										end								
+									elsif token(1) == Token.Dot
+										write("mov ebx,eax")
+										expression(true, Context.new(context))
+										write("mov [ebx],eax")
+									end
+								end
+							elsif token(1) == Token.Assign
+								expression(true, context)
+							elsif token(1) == Token.In
+								expression(true, context)
+								inDeclaration = true
+							else
+								error("can not determine type of " + name)
+							end
+						else
+							variable = getVariable(name)
+						end
+						
+						context.type = variable.type
+						context.level = variable.level
+						
+						switch variable.scope
+							case Scope.Local, Scope.Class
+								write("mov ebx,eax")
+								write("lea eax,[ebp-" + offset + "]")
+							end
+							
+							case Scope.Instance
+							end
+						end
+						
+						getToken
+						
+                        // Transform address into data if we're not assigning.
+						if token != Token.Dot && token != Token.Assign
+							switch variable.type.id
+								case BaseType.Bool.int
+									write("movzx eax,byte[eax]")
+								end
+								
+								case BaseType.Int.int
+								
+									write("mov eax,[eax]")
+									
 								end
 							end
-						elsif token(1) == Token.Assign
-							expression(true, context)
-							"---".print
-						elsif token(1) == Token.In
-							expression(true, context)
-							inDeclaration = true
-						else
-							error("can not determine type of " + variableName)
 						end
 					end
 				end
@@ -310,12 +465,106 @@ module Compiler
 			return context
 		end
 		
+		// Overwrites the current type if it is void.
 		def overType(context as Context, typeName as string)
-			b = 0
-			b = BaseType.Void
+			if context.type.id == BaseType.Void.int then context.type = getType(typeName)
+		end
 		
-			// Overwrite the current type if it is void.
-			if context.type.id == b then context.type = getType(typeName)
+		def call(context as Context, baseClass as Class, name as string)
+			function as Function
+			function = null
+			
+			context.isAssignable = false
+		
+			if context.type.id == BaseType.Float.int
+			else
+				write("push ebx")
+				write("push eax")
+			end
+			
+			line = assembly.jump
+			
+			argument = 0
+			stackSize = 0
+			
+			getToken
+			
+			types = Type(10)
+			typeCount = 0
+			
+			// Parameters list.
+			if token == Token.Lp
+				while token != Token.Eol
+					
+					// Check for the end of parameters list.
+					if token == Token.Rp then break
+					
+					// Comma : going to the next argument.
+					if token == Token.Comma
+						// Check is there was a previous argument
+						if argument == 0
+							error("first parameter is empty")
+						else
+							argument++
+						end
+					end
+					
+					// Read the type emitted for each argument.
+					type = expression(true, Context.new(getType("void"))).type
+					("t = " + type.id.string).print
+					if type.id != BaseType.Void.int
+						types(typeCount) = type
+						typeCount++
+					end
+					
+					
+					write("mov dword [esp+" + stackSize.string + "],eax");
+					
+					stackSize = stackSize + type.size
+					
+					// switch type.id
+					
+						// case BaseType.Bool.int, BaseType.Int.int, BaseType.String.int
+						// end
+					
+						
+					// end
+				end
+			end
+			
+			// Setter function
+			if token == Token.Assign
+			end
+			
+			function = baseClass.getFunction(name, types, typeCount)
+			
+			// Calling the function if not null.
+			if function != null
+			
+				// Increase stack size to allow arguments. Written at the position of the jumped line.
+				if function.argumentSize > 0 then assembly.write("sub esp," + function.argumentSize, line)				
+					
+				function.isUsed = true
+				
+				write("call " + function.mangledName)
+				
+				// Restore stack size.
+				if function.argumentSize > 0 then assembly.write("add esp," + function.argumentSize, line)				
+				
+				if function.name == "new" and !function.isAlias
+					write("pop eax")
+					write("pop ebx")
+				else
+					write("pop ebx")
+					write("pop ebx")
+				end
+					
+				//context.type = function.
+			end
+			
+			if token == Token.Dot
+				term(false, context)
+			end
 		end
 	end
 end

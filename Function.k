@@ -14,6 +14,7 @@ module Compiler
 		
 		arguments as Field()
 		argumentCount as int
+		_argumentSize as int
 		
 		setterArgument as Field
 		setterTypeName as string
@@ -40,6 +41,8 @@ module Compiler
 			
 			arguments = Field(10)
 			argumentCount = 0
+			
+			_argumentSize = -1
 			
 			setterArgument = null
 			binding = string.empty
@@ -90,6 +93,12 @@ module Compiler
 			mangling = mangling.replace(".", "_")
 			mangling = mangling.lower
 			
+			i = 0
+			while i < argumentCount
+				mangling = mangling + "_" + arguments(i).type.id.string
+				i++
+			end
+			
 			return mangling
 		end
 		
@@ -107,6 +116,18 @@ module Compiler
 		
 		def isSetter as bool
 			return setterArgument != null
+		end
+		
+		def createAnonymousArgument(typeName as string) as Field
+			argName = "arg_" + argumentCount.string
+			
+			argument = Field.new(argName)
+			argument.key = typeName
+			
+			arguments(argumentCount) = argument
+			argumentCount++
+			
+			return argument
 		end
 		
 		def addArgument(argName as string) as Field
@@ -130,6 +151,24 @@ module Compiler
 			end
 			
 			return null
+		end
+		
+		def argumentSize as int
+			if _argumentSize == -1
+				_argumentSize = 0
+				
+				// Adding every argument to determine the stack size needed for the arguments.
+				i = 0
+				while i < argumentCount
+					_argumentSize = _argumentSize + arguments(i).type.size
+					i++
+				end
+				
+				// Add setter argument.
+				//if isSetter then argumentsize = argumentSize + setterArgument.type.size
+			end
+			
+			return _argumentSize
 		end
 		
 		def linkTypes
@@ -158,7 +197,45 @@ module Compiler
 		end
 		
 		def loadVariables
+			offset = -4
+			
+			// Adding all the variables from the arguments.
+			i = 0
+			while i < argumentCount
+				offset = offset - arguments(i).type.size
+				block.createArgumentVariable(arguments(i).name, arguments(i).type, arguments(i).level, offset)
+				i++
+			end
+						
+			// If the function is inside a class, its field and the special variable "this" are added.
+			if fclass != null
+				block.createArgumentVariable("this", fclass.type, 1, offset - 4)
+				
+				i = 0
+				while i < fclass.fieldCount
+					f = fclass.fields
+					block.createInstanceVariable(f(i))
+					i++
+				end
+			end
+		end
 		
+		def acceptTypes(types as Type(), typeCount as int) as bool
+		typeCount.print
+		argumentCount.print
+			// Number of arguments not matching : not ok.
+			if typeCount != argumentCount then return false
+		10.print
+			// No arguments : accepted.
+			if typeCount == 0 then return true
+			20.print
+			i = 0
+			while i < argumentCount
+				if arguments(i).type.id != types(i) then return false
+				i++
+			end
+			
+			return true
 		end
 	end
 end

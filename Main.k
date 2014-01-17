@@ -1,19 +1,22 @@
 using Kore
 
 module Compiler
-	def main	
+	def main
+		"Kore Compiler - v0.100".print
+		
+		Console.next
+	
 		entry = "_main"
 	
-		program = Program.load("Compiler")
+		program = Program.load("F:\\kore-lang\\dev")
 		
 		Console.next
 		"Loading...".print
-				
-		program.loadSources("F:\\kore-lang\\compiler\\")
+								
 		program.loadLibraries("F:\\JadeBasic\\JadeBasic\\JadeBasic\\Headers\\")
 			
 		program.addLibraryPath("Libraries\\DirectX9")
-		program.addLibraryPath("Libraries\\Core")
+		program.addLibraryPath("Libraries\\JadeLibrary")
 		program.addLibraryPath("Libraries\\Windows")
 
 		Console.next
@@ -28,11 +31,14 @@ module Compiler
 		parser = Parser.new(lexer)
 		parser.parse(program)
 		
-		appModule = program.getModule("Compiler")
+		appModule = program.getAppModule
+		
+		program.loadUsing(appModule)
 		
 		if (appModule.checkTypes)
 			appModule.linkTypes
 			
+			Console.next
 			"Type link ok".print
 			
 			assembly = Assembly.new
@@ -55,14 +61,12 @@ module Compiler
 			assembly.write("extrn '_String_Compare' as _cmp_string:dword")
 			assembly.write("extrn '_String_ToInt' as _string_toint:dword")
 			assembly.write("extrn '_Int_ToString' as _int_tostring:dword")
-			
-			assembly.save("compiler2.asm")
-			
-			program.assemble
-			program.link
+						
+			program.includeString = appModule.includeString
+						
+			program.assemble("F:\\JadeBasic\\JadeBasic\\JadeBasic\\FASM.EXE", assembly)
+			program.link("F:\\JadeBasic\\JadeBasic\\JadeBasic\\polink.exe")
 			program.execute
 		end
-		
-		//program.loadUsing
 	end
 end

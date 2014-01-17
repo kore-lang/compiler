@@ -109,10 +109,12 @@ module Compiler
 		/// <param name="currentModule">Module in which one data will be added.</param>
 		def parse(currentModule as Module) as bool
 			pmodule = currentModule
-		
+						
 			while getToken != Token.ProgEnd
 				switch token
-					case Token.End then return true
+					case Token.End 
+						return true
+					end
 
 					case Token.Include
 						if getToken == Token.String
@@ -262,6 +264,7 @@ module Compiler
 								// Self-getter.
 								if token == Token.This then newFunction.isThis = true
 						
+								// If the function creation is ok.
 								if newFunction != null
 									if getToken == Token.Lp
 										if getToken != Token.Rp
@@ -286,6 +289,9 @@ module Compiler
 														else
 															error("type name waited after 'as' keyword")
 														end
+													else
+														newArgument = newFunction.createAnonymousArgument(value)
+														requireAlias = true
 													end
 													
 													// Arguments must be separated by a comma, if it's not the case, we throw an error.
@@ -333,11 +339,13 @@ module Compiler
 											// Type of the argument.
 											if getToken == Token.As											
 												if getToken == Token.Name then newFunction.setterTypeName = value
+												
+												if token(1) == Token.Alias then getToken
 											else
 												error("assignation parameter must be explictly typed")
 											end
 										end
-									end
+									end									
 									
 									// Aliasing the function.
 									if token == Token.Alias
