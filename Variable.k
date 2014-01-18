@@ -38,7 +38,14 @@ module Compiler
 		isUsed as bool
 		
 		def new(variableName as string)
+			offset = 0
+			level = 0
+			
 			name = variableName
+			
+			isAssigned = false
+			isNullable = false
+			isUsed = false
 		end
 	end
 end

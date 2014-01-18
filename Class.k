@@ -104,8 +104,7 @@ module Compiler
 		def getFunction(functionName as string, types as Type(), typeCount as int) as Function
 			i = 0
 			while i < functionCount
-				if functions(i).name == functionName 
-					functionName.print
+				if functions(i).name == functionName
 					if functions(i).acceptTypes(types, typeCount) == true
 						return functions(i)
 					end

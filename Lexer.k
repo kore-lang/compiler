@@ -117,12 +117,14 @@ module Compiler
 
 				case "," then return Token.Comma
 
-				case "0", "1", "2", "3", "4", "5", "6", "7", "8"
-					value = value + ch
-
-					while line.get(0).isNumeric
+				case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"
+					//hasDot = false
+				
+					while line.length > 0 and line.get(0).isNumeric
+						//if line.get(0) == "." then hasDot = true
+					
 						value = value + line.get(0)
-						//line = line.erase(1)
+						line = line.erase(1)
 					end
 
 					return Token.Integer
@@ -166,9 +168,7 @@ module Compiler
 							case "module" then return Token.Module
 							case "class" then return Token.Class
 							case "enum" then return Token.Enum
-	
-							case "this" then return Token.This
-	
+		
 							case "new" then return Token.New
 							case "delete" then return Token.Delete
 

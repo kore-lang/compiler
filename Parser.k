@@ -247,7 +247,7 @@ module Compiler
 							
 							getToken
 							
-							if token == Token.Name or token == Token.New or token == Token.Delete or token == Token.This							
+							if token == Token.Name or token == Token.New or token == Token.Delete// or token == Token.This							
 								newFunction = currentClass.addFunction(value, pmodule, currentClass)
 								
 								newFunction.isStatic = isStaticFunction
@@ -262,7 +262,7 @@ module Compiler
 								if token == Token.Delete then newFunction.isDestructor = true
 								
 								// Self-getter.
-								if token == Token.This then newFunction.isThis = true
+								//if token == Token.This then newFunction.isThis = true
 						
 								// If the function creation is ok.
 								if newFunction != null
@@ -310,8 +310,8 @@ module Compiler
 									else
 									
 										// No arguments : creating an empty one.
-										newArgument = newFunction.addArgument("")
-										newArgument.key = "void"
+									//	newArgument = newFunction.addArgument("")
+									//	newArgument.key = "void"
 									end
 									
 									// Typing the function's return.

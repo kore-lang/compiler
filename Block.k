@@ -311,11 +311,9 @@ module Compiler
 								
 								// Checking if we're trying to convert.
 								if typeExists(value)
-									"CONVEEEEEEEERTING".print
+									"Converting".print
 								elsif baseClass.fieldExists(value)
-								
-								"FIEEEEEEELD".print
-								
+									"Field".print
 								elsif baseClass.functionExists(value)
 									call(context, baseClass, value)
 								else
@@ -372,7 +370,6 @@ module Compiler
 				case Token.Name
 					name = value
 					
-				name.print
 					// Loading the type as the current one. 
 					if typeExists(name)
 						type = getType(name)
@@ -435,7 +432,7 @@ module Compiler
 						switch variable.scope
 							case Scope.Local, Scope.Class
 								write("mov ebx,eax")
-								write("lea eax,[ebp-" + offset + "]")
+								write("lea eax,[ebp-" + variable.offset.string + "]")
 							end
 							
 							case Scope.Instance
@@ -444,7 +441,7 @@ module Compiler
 						
 						getToken
 						
-                        // Transform address into data if we're not assigning.
+                        // Transforms address into data if we're not assigning.
 						if token != Token.Dot && token != Token.Assign
 							switch variable.type.id
 								case BaseType.Bool.int
@@ -511,10 +508,12 @@ module Compiler
 					
 					// Read the type emitted for each argument.
 					type = expression(true, Context.new(getType("void"))).type
-					("t = " + type.id.string).print
+					
 					if type.id != BaseType.Void.int
 						types(typeCount) = type
 						typeCount++
+					else
+						error("invalid argument")
 					end
 					
 					

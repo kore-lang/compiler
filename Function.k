@@ -221,17 +221,15 @@ module Compiler
 		end
 		
 		def acceptTypes(types as Type(), typeCount as int) as bool
-		typeCount.print
-		argumentCount.print
 			// Number of arguments not matching : not ok.
 			if typeCount != argumentCount then return false
-		10.print
+			
 			// No arguments : accepted.
 			if typeCount == 0 then return true
-			20.print
+			
 			i = 0
 			while i < argumentCount
-				if arguments(i).type.id != types(i) then return false
+				if arguments(i).type.id != types(i).id then return false
 				i++
 			end
 			

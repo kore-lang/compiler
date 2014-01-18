@@ -15,8 +15,6 @@ module Compiler
 
 		End			// End keyword for most code structures.
 		
-		This		// This keyword for self-designation.
-		
 		New			// Instanciation.
 		Delete		// Deletion.
 
