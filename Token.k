@@ -34,6 +34,11 @@ module Compiler
 		Mul
 		Div
 
+		SelfAdd		// Add to itself.
+		SelfSub		// Substract from itself.
+		SelfMul		// Multiply itself by.
+		SelfDiv		// Divide itself by.
+		
 		Not
 		Or
 		Xor

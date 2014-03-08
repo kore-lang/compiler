@@ -135,8 +135,18 @@ module Compiler
 		
 		def build(blockAssembly as Assembly)
 			assembly = blockAssembly
-							
+			
+			stackLine = assembly.jump
+			
 			parseAndAssemble
+			
+			assembly.write("end_" + bfunction.mangledName + ":")
+			
+			// Reduce and increase the function stack if needed.
+			if stack > 0
+				assembly.write("sub esp," + stack.string, stackLine)
+				assembly.write("add esp," + stack.string)
+			end
 		end
 		
 		def write(line as string)
@@ -147,6 +157,11 @@ module Compiler
 			while pointer + 1 < tokenCount
 				expression(true, Context.new(getType("void")))
 			end
+		end
+		
+		// Skips some tokens.
+		def skipToken(quantity as int)
+			pointer = pointer + quantity
 		end
 		
 		// Moves the pointer to the next token and returns it.
@@ -237,40 +252,68 @@ module Compiler
 			
 			do
 				switch token
+				
+					// Add the next tere to the current result.
 					case Token.Plus
 						write("push eax")
-						Term(true, Context.new(context))
+						term(true, Context.new(context))
 						write("pop ebx")
 						
-						 switch context.type.id
-							 case BaseType.Int.int then write("add eax,ebx")
-							
-							 case BaseType.Float.int then write("faddp st1,st0")
-							
-							 case BaseType.String.int
-								 write("push eax")
-								 write("push ebx")
-								 write("call _add_string")
-								 write("add esp,8")		
-							 end
-						 end
+						switch context.type.id
+							case BaseType.Int.int 
+								write("add eax,ebx")
+							end
+
+							case BaseType.Float.int
+								write("faddp st1,st0")
+							end
+
+							case BaseType.String.int
+								write("push eax")
+								write("push ebx")
+								write("call _add_string")
+								write("add esp,8")		
+							end
+						end
 					end
 					
-					// case Token.Minus
-					// end
+					// Subtract the current result by the next term.
+					case Token.Minus
+						write("push eax")
+						term(true, Context.new(context))
+						write("pop ebx")
+						
+						switch context.type.id
+							case BaseType.Int.int 
+								write("sub ebx,eax")
+								write("mov eax,ebx")
+							end
+
+							case BaseType.Float.int
+								write("fsubp st1,st0")
+							end
+						end
+					end
 					
-					case Token.Assign
+					case Token.Assign //, Token.SelfAdd, Token.SelfSub, Token.SelfMul, Token.SelfDiv
 						if context.isAssignable
 							context.isAssignable = false
 							
                             // Keep the type of the expression result to assign.
 							write("push eax")
-							expression(true, Context.new(context))
+							type = expression(true, Context.new(context)).type
 							write("mov ebx,eax")
 							write("pop eax")
 							
                             // Use this type if the local context is not strongly typed.
 							if context.type.id == BaseType.Void.int then context.type = type
+							
+							// Proper assignation.
+							switch context.type.id
+								case BaseType.Int.int
+									write("mov [eax],ebx")
+								end
+							end
 						else
 							error("can not assign in this context")
 						end
@@ -286,6 +329,45 @@ module Compiler
 			
 			do
 				switch token
+					case Token.Mul
+						switch context.type.id
+							case BaseType.Int.int
+								primary(true, Context.new(context))
+								write("imul ebx")
+							end
+							
+							case BaseType.Float.int
+								primary(true, Context.new(context))
+								write("fmulp")
+							end
+						end					
+					end
+										
+					case Token.Div
+						switch context.type.id
+							case BaseType.Int.int
+								write("push ebx")
+								
+								primary(true, Context.new(context))
+								
+								// Invert divisor and dividend.
+								write("push eax")
+								write("mov eax,ebx")
+								write("pop ebx")
+								
+								write("mov edx,0")
+								write("idiv ebx")
+								write("pop ebx")
+							end
+							
+							case BaseType.Float.int
+								primary(true, Context.new(context))
+								write("fdivp st1,st0")
+							end
+						end					
+					end
+					
+					
 					case Token.Dot
 						switch context.type.objectType
 							// Analyzing an enumeration post-dot element.
@@ -305,8 +387,8 @@ module Compiler
 								end
 								
 								// Pointer indirection if needed.
-								if level > 0
-					//				write("mov eax,[eax]")
+								if context.level > 0
+									write("mov eax,[eax]")
 								end
 								
 								// Checking if we're trying to convert.
@@ -370,7 +452,7 @@ module Compiler
 				case Token.Name
 					name = value
 					
-					// Loading the type as the current one. 
+					// Loading the dectected type as the default one. 
 					if typeExists(name)
 						type = getType(name)
 						
@@ -379,6 +461,8 @@ module Compiler
 						else
 							context.type = type
 						end
+						
+						context.level = 0
 						
 					// If nothing works, check variables.
 					else
@@ -389,11 +473,16 @@ module Compiler
 						variable as Variable
 						variable = null
 						
+						buffer as AssemblyBuffer
+						buffer = null
+						
 						// If there isn't any variable of this name, try to create it.
 						if not variableExists(name)
 							variableDeclaration = true
 							
-							// Explicit variable typing
+							assembly.startBuffer
+							
+							// Explicit variable typing.
 							if token(1) == Token.As
 								getToken
 								
@@ -415,6 +504,8 @@ module Compiler
 									end
 								end
 							elsif token(1) == Token.Assign
+								//skipToken(1)
+								
 								expression(true, context)
 							elsif token(1) == Token.In
 								expression(true, context)
@@ -422,6 +513,13 @@ module Compiler
 							else
 								error("can not determine type of " + name)
 							end
+							
+							buffer = assembly.stopBuffer
+														
+							// Effectively creates the new variable.
+							variable = createVariable(name, context.type, 1)
+							
+							//variable.offset
 						else
 							variable = getVariable(name)
 						end
@@ -429,6 +527,7 @@ module Compiler
 						context.type = variable.type
 						context.level = variable.level
 						
+						// Loading the variable address (either stack or heap).
 						switch variable.scope
 							case Scope.Local, Scope.Class
 								write("mov ebx,eax")
@@ -439,23 +538,39 @@ module Compiler
 							end
 						end
 						
-						getToken
+						// Get the next token if we're not declaring a variable.
+						if !variableDeclaration then getToken
 						
-                        // Transforms address into data if we're not assigning.
+						// Update the buffer with assignation content.
+						if variableDeclaration then buffer.writeTo(assembly)
+						
+                        // Transforms address into data if the next token isn't some kind of assignation.
 						if token != Token.Dot && token != Token.Assign
 							switch variable.type.id
 								case BaseType.Bool.int
 									write("movzx eax,byte[eax]")
 								end
 								
-								case BaseType.Int.int
-								
-									write("mov eax,[eax]")
-									
+								case BaseType.Int.int								
+									write("mov eax,[eax]")									
 								end
 							end
+							
+							context.level = context.level - 1
 						end
 					end
+				end
+				
+				// Starts a new expression when encoutering a parenthesis.
+				case Token.Lp
+					//subContext = Context.new(context)
+					//subContext.level = 0
+					
+					expression(true, context)
+					
+					if token != Token.Rp then error("irregular number of brackets")
+					
+					getToken
 				end
 			end
 			
@@ -541,14 +656,14 @@ module Compiler
 			if function != null
 			
 				// Increase stack size to allow arguments. Written at the position of the jumped line.
-				if function.argumentSize > 0 then assembly.write("sub esp," + function.argumentSize, line)				
+				if function.argumentSize > 0 then assembly.write("sub esp," + function.argumentSize.string, line)				
 					
 				function.isUsed = true
 				
 				write("call " + function.mangledName)
 				
 				// Restore stack size.
-				if function.argumentSize > 0 then assembly.write("add esp," + function.argumentSize, line)				
+				if function.argumentSize > 0 then assembly.write("add esp," + function.argumentSize.string)				
 				
 				if function.name == "new" and !function.isAlias
 					write("pop eax")
@@ -561,6 +676,7 @@ module Compiler
 				//context.type = function.
 			end
 			
+			// If we have to perform a chained call.
 			if token == Token.Dot
 				term(false, context)
 			end

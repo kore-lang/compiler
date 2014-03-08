@@ -1,26 +1,37 @@
 module Compiler
 	class Assembly
-		lines as string()
-		lineCount as int
-		
-		limit as int
+	
+		// Buffers list.
+		buffers as AssemblyBuffer()
+		bufferCount as int
 		
 		def new
 			limit = 20000
 		
-			lines = string(limit)
-			lineCount = 0
+			buffers = AssemblyBuffer(100)
+			buffers(0) = AssemblyBuffer.new(limit)
+			bufferCount = 1
 		end
 	
+		// Write the line to the end of the current buffer.
 		def write(line as string)
-			lines(lineCount) = line
-			lineCount++
-			
-			if (lineCount == limit) then ("require assembly extension above " + limit.string).print
+			buffers(bufferCount - 1).write(line)
 		end
 		
-		def write(line as string, number as int)
-			lines(number) = line
+		// Write the line at the specified buffer's position.
+		def write(line as string, number as int)		
+			buffers(bufferCount - 1).write(line, number)
+		end
+		
+		// Return the line count for the current buffer.
+		def lineCount as int
+			return buffers(bufferCount - 1).lineCount
+		end
+				
+		// Return the specified line of the current buffer.
+		def lines(i as int) as string
+			l = buffers(bufferCount - 1).lines		
+			return l(i)
 		end
 		
 		def print
@@ -32,8 +43,7 @@ module Compiler
 		end
 		
 		def save(fileName as string)
-			file = File.new(fileName, FileMode.Write)
-			
+			file = File.new(fileName, FileMode.Write)			
 			i = 0
 			while i < lineCount
 				file.write(lines(i) + string.newLine)
@@ -45,10 +55,25 @@ module Compiler
 		
 		// Jump over a line.
 		def jump as int
-			lines(lineCount) = string.empty
-			lineCount++
+			return buffers(bufferCount - 1).jump
+		end
+		
+		// Starts a new buffer.
+		def startBuffer
+			bufferCount++
+			buffers(bufferCount - 1) = AssemblyBuffer.new(100)
 			
-			return lineCount - 1
+		//	("Increased assembly buffers to " + bufferCount.string).print
+		end
+		
+		// End the current buffer and returns it.
+		def stopBuffer as AssemblyBuffer
+			buffer = buffers(bufferCount - 1)
+			bufferCount--
+			
+		//	("Reduced assembly buffers to " + bufferCount.string).print
+			
+			return buffer
 		end
 	end
 end

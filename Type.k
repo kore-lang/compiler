@@ -36,5 +36,9 @@ module Compiler
 			name = typeName
 			size = typeSize
 		end
+		
+		def print
+			(name + ":" + id.string + " of size " + size.string).print
+		end
 	end
 end

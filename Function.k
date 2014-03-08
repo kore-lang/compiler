@@ -63,6 +63,8 @@ module Compiler
 			arguments = Field(10)
 			argumentCount = 0
 			
+			_argumentSize = -1
+			
 			setterArgument = null
 			binding = string.empty
 			
@@ -81,6 +83,8 @@ module Compiler
 			
 			arguments = Field(10)
 			argumentCount = 0
+			
+			_argumentSize = -1
 			
 			setterArgument = null
 			binding = string.empty
@@ -209,7 +213,11 @@ module Compiler
 						
 			// If the function is inside a class, its field and the special variable "this" are added.
 			if fclass != null
-				block.createArgumentVariable("this", fclass.type, 1, offset - 4)
+				if fclass.type.id == BaseType.Int.int
+					block.createArgumentVariable("this", fclass.type, 1, offset - 4)
+				else
+					block.createArgumentVariable("this", fclass.type, 1, offset - 4)
+				end
 				
 				i = 0
 				while i < fclass.fieldCount

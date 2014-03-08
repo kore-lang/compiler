@@ -76,11 +76,26 @@ module Compiler
 
 				case ")" then return Token.Rp
 
-				case "+" then return Token.Plus
-				case "-" then return Token.Minus
+				case "+"
+					if next == "=" then return Token.SelfAdd
+					
+					return Token.Plus
+				end
+				
+				case "-" 
+					if next == "=" then return Token.SelfSub
+					
+					return Token.Minus
+				end
 
-				case "*" then return Token.Mul
+				case "*" 
+					if next == "=" then return Token.SelfMul
+				
+					return Token.Mul
+				end
+					
 				case "/" 
+					if next == "=" then return Token.SelfDiv
 					if next == "/" then return Token.Eol
 
 					return Token.Div
