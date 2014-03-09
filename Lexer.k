@@ -77,26 +77,42 @@ module Compiler
 				case ")" then return Token.Rp
 
 				case "+"
-					if next == "=" then return Token.SelfAdd
+					if next == "=" 
+						line = line.erase(1)
+						return Token.SelfAdd
+					end
 					
 					return Token.Plus
 				end
 				
 				case "-" 
-					if next == "=" then return Token.SelfSub
+					if next == "=" 
+						line = line.erase(1)
+						return Token.SelfSub
+					end
 					
 					return Token.Minus
 				end
 
 				case "*" 
-					if next == "=" then return Token.SelfMul
+					if next == "=" 
+						line = line.erase(1)
+						return Token.SelfMul
+					end
 				
 					return Token.Mul
 				end
 					
 				case "/" 
-					if next == "=" then return Token.SelfDiv
-					if next == "/" then return Token.Eol
+					if next == "="
+						line = line.erase(1)
+						return Token.SelfDiv
+					end
+					
+					if next == "/" 
+						line = line.erase(1)
+						return Token.Eol
+					end
 
 					return Token.Div
 				end
@@ -104,26 +120,38 @@ module Compiler
 				case "." then return Token.Dot
 
 				case "!" 
-					if next == "=" then return Token.Neq
+					if next == "=" 
+						line = line.erase(1)
+						return Token.Neq
+					end
 					
 					return Token.Not
 				end
 					
 
 				case "=" 
-					if next == "=" then return Token.Eq
+					if next == "=" 
+						line = line.erase(1)
+						return Token.Eq
+					end
 				
 					return Token.Assign
 				end
 
 				case ">"
-					if next == "=" then return Token.Gte
+					if next == "=" 
+						line = line.erase(1)
+						return Token.Gte
+					end
 					
 					return Token.Gt
 				end
 
 				case "<"
-					if next == "=" then return Token.Lte
+					if next == "=" 
+						line = line.erase(1)
+						return Token.Lte
+					end
 	
 					return Token.Lt
 				end
@@ -210,6 +238,8 @@ module Compiler
 
 							case "true" then return Token.Boolean
 							case "false" then return Token.Boolean
+							
+							case "null" then return Token.Null
 
 							case "not" then return Token.Not
 							case "or" then return Token.Or

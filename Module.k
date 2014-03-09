@@ -169,7 +169,7 @@ module Compiler
 			functionCount++
 		end
 
-		def	hasFunction(functionName as string) as bool
+		def	functionExists(functionName as string) as bool
 			i = 0
 			while i < functionCount
 				if functions(i).name == functionName then return true
@@ -304,7 +304,7 @@ module Compiler
 			assembly.write("push ebp")
 			assembly.write("mov ebp,esp")
 			
-            if this.hasFunction("main") then assembly.write("call " + getFunction("main").mangledName)
+            if this.functionExists("main") then assembly.write("call " + getFunction("main").mangledName)
 
             assembly.write("pop ebp")
             assembly.write("ret")

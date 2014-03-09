@@ -23,6 +23,15 @@ module Compiler
 			buffers(bufferCount - 1).write(line, number)
 		end
 		
+		// Write the assembly to another one.
+		def writeTo(assembly as Assembly)		
+			i = 0
+			while i < lineCount
+				assembly.write(lines(i))
+				i++
+			end			
+		end
+		
 		// Return the line count for the current buffer.
 		def lineCount as int
 			return buffers(bufferCount - 1).lineCount

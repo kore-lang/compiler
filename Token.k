@@ -53,9 +53,8 @@ module Compiler
 
 		Name
 
+		Null
 		Boolean
-
-		Bool
 		Integer
 		Float
 		String

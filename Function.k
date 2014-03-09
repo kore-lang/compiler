@@ -201,23 +201,23 @@ module Compiler
 		end
 		
 		def loadVariables
-			offset = -4
+			offset = -8
 			
 			// Adding all the variables from the arguments.
 			i = 0
 			while i < argumentCount
-				offset = offset - arguments(i).type.size
 				block.createArgumentVariable(arguments(i).name, arguments(i).type, arguments(i).level, offset)
+				offset = offset - arguments(i).type.size
 				i++
 			end
 						
-			// If the function is inside a class, its field and the special variable "this" are added.
+			// If the function is inside a class, its fields and the special variable "this" are added.
 			if fclass != null
-				if fclass.type.id == BaseType.Int.int
-					block.createArgumentVariable("this", fclass.type, 1, offset - 4)
-				else
-					block.createArgumentVariable("this", fclass.type, 1, offset - 4)
-				end
+			//	if fclass.type.id == BaseType.Int.int
+					block.createArgumentVariable("this", fclass.type, 1, offset)
+			//	else
+			//		block.createArgumentVariable("this", fclass.type, 1, offset)
+			//	end
 				
 				i = 0
 				while i < fclass.fieldCount

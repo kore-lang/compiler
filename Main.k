@@ -1,7 +1,7 @@
 using Kore
 
-module Compiler
-	def main
+module Compiler	
+	def main		
 		"Kore Compiler - v0.100".print
 		
 		Console.next
@@ -35,7 +35,7 @@ module Compiler
 		
 		program.loadUsing(appModule)
 		
-		if (appModule.checkTypes)
+		if appModule.checkTypes
 			appModule.linkTypes
 			
 			Console.next

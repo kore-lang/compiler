@@ -40,10 +40,17 @@ module Compiler
 			pointer = 0
 			
 			bfunction = blockFunction
+			
+			// Depth initialization.
+			addDepth(Token.Def, 0)
 		end
 		
 		def container as Module
 			return bfunction.fmodule
+		end
+		
+		def mangledName as string
+			return bfunction.mangledName
 		end
 		
 		def createVariable(name as string, type as Type, level as int) as Variable
@@ -125,6 +132,52 @@ module Compiler
 			if tokenCount == 2000 then "token increase needed".print
 		end
 		
+		// Adds a new depth to the current block.
+		def addDepth(depthToken as Token, depthPointer as int)
+			depth = Depth.new(depthToken, depthPointer)			
+			depthes(depthCount) = depth
+			depthCount++
+			
+			assembly = depth.assembly
+		end
+		
+		// Defines the current depth for assembly writing.
+		def setWriteDepth(i as int)
+			if depthCount - i >= 1
+				assembly = depthes(depthCount - i - 1).assembly
+			end
+		end
+		
+		// Returns the current depth
+		def getDepth(i as int) as Depth
+			if depthCount >= 1
+				if i < depthCount
+					return depthes(depthCount - i - 1)
+				else
+					error("Internal error : depth overflow")
+				end
+			else
+				error("Internal error : local block has no depth")
+			end
+			
+			return null
+		end
+		
+		// Delete the current depth.
+		def deleteDepth
+			if depthCount > 1
+				// Copy its content to its predecessor.
+				newAssembly = depthes(depthCount - 2).assembly
+				assembly.writeTo(newAssembly)
+				
+				// Restore the previous depth
+				depthCount--
+				assembly = newAssembly
+			else
+				error("closing non-existing depth")
+			end
+		end
+		
 		def getType(typeName as string) as Type
 			return bfunction.fmodule.getType(typeName)
 		end
@@ -134,19 +187,18 @@ module Compiler
 		end
 		
 		def build(blockAssembly as Assembly)
-			assembly = blockAssembly
-			
-			stackLine = assembly.jump
-			
 			parseAndAssemble
 			
-			assembly.write("end_" + bfunction.mangledName + ":")
+			// Reduce the block stack if needed.
+			if stack > 0 then blockAssembly.write("sub esp," + stack.string)
 			
-			// Reduce and increase the function stack if needed.
-			if stack > 0
-				assembly.write("sub esp," + stack.string, stackLine)
-				assembly.write("add esp," + stack.string)
-			end
+			// Copy from the local assembly to the global one.
+			assembly.writeTo(blockAssembly)
+			
+			// Restore the stack.
+			if stack > 0 then blockAssembly.write("add esp," + stack.string)
+			
+			blockAssembly.write("end_" + bfunction.mangledName + ":")
 		end
 		
 		def write(line as string)
@@ -198,7 +250,7 @@ module Compiler
 		end
 				
 		// Parse expression.
-		def expression(nextToken as bool, context as Context) as Context		
+		def expression(nextToken as bool, context as Context) as Context			
 			andExpression(nextToken, context)
 			
 			do
@@ -295,9 +347,10 @@ module Compiler
 						end
 					end
 					
+					// Variable assignation.
 					case Token.Assign //, Token.SelfAdd, Token.SelfSub, Token.SelfMul, Token.SelfDiv
 						if context.isAssignable
-							context.isAssignable = false
+							//context.isAssignable = false
 							
                             // Keep the type of the expression result to assign.
 							write("push eax")
@@ -310,6 +363,10 @@ module Compiler
 							
 							// Proper assignation.
 							switch context.type.id
+								case BaseType.Bool.int
+									write("mov [eax],ebx")
+								end
+							
 								case BaseType.Int.int
 									write("mov [eax],ebx")
 								end
@@ -317,6 +374,93 @@ module Compiler
 						else
 							error("can not assign in this context")
 						end
+					end
+					
+					// Equality and non equality.
+					case Token.Eq, Token.Neq
+					
+						// Keep the info about the operator.
+						equal = token == Token.Eq
+						
+						write("push eax")
+						subExpression(true, context)
+						write("pop ebx")
+						
+						switch context.type.id
+							case BaseType.Bool.int
+								write("cmp eax,ebx")
+							end
+						
+							case BaseType.Int.int
+								write("cmp eax,ebx")
+							end
+							
+							case BaseType.Float.int
+								write("fcompp")
+								write("fstsw ax")
+								write("sahf")
+							end
+							
+							case BaseType.String.int
+								write("push eax")
+								write("push ebx")
+								write("call _cmp_string")
+								write("add esp,8")
+								write("cmp eax,1")
+							end
+						end
+						
+						// Clean EAX.
+						write("mov eax,0")
+						
+						if equal
+							write("sete al")
+						else
+							write("setne al")
+						end
+						
+						context.type = getType("bool")
+					end
+					
+					// For any basic comparison.
+					case Token.Gte, Token.Gt, Token.Lte, Token.Lt
+						operator = token
+					
+						term(true, context)
+						
+						// Performs a comparison that updates the flags.
+						switch context.type.id
+							case BaseType.Int.int
+								write("cmp eax,ebx")
+							end
+							
+							case BaseType.Float.int
+								write("fcompp")
+								write("fstsw ax")
+								write("sahf")
+							end
+						end
+						
+						write("mov eax,0")
+						
+						// Comparison operator is translated to ASM.
+						switch operator
+							case Token.Gte
+								write("setbe al")
+							end
+							case Token.Gt
+								write("setb al")
+							end
+							case Token.Lte
+								write("setae al")
+							end
+							case Token.Lt
+								write("seta al")
+							end
+						end
+						
+						// Comparison always returns a boolean type.
+						context.type = getType("bool")
 					end
 					
 					default then return context
@@ -411,9 +555,19 @@ module Compiler
 		end
 		
 		def primary(nextToken as bool, context as Context) as Context
-			if nextToken.int > 0 then getToken
+			if nextToken then getToken
 			
 			switch token
+			
+				// Null keyword loads 0.
+				case Token.Null
+					write("mov ebx,eax")
+					write("mov eax,0")
+					
+					if token(-1) != Token.Case then getToken
+				end
+			
+				// Boolean loads to 1 or 0 depending if the value is true or false.
 				case Token.Boolean
 					write("mov ebx,eax")
 				
@@ -428,6 +582,7 @@ module Compiler
 					overType(context, "bool")
 				end
 				
+				// Loads a plain integer.
 				case Token.Integer
 					write("mov ebx,eax")
 					write("mov eax," + value)
@@ -440,6 +595,12 @@ module Compiler
 					overType(context, "int")
 				end
 				
+				// Floating point number.
+				case Token.Float
+					
+				end				
+				
+				// Loads string pointer.
 				case Token.String
 					write("mov ebx,eax")
 					write("mov eax,_S" + addString(value).string)
@@ -456,7 +617,7 @@ module Compiler
 					if typeExists(name)
 						type = getType(name)
 						
-						// Array instanciation
+						// Array instanciation.
 						if getToken == Token.Lp
 						else
 							context.type = type
@@ -464,6 +625,11 @@ module Compiler
 						
 						context.level = 0
 						
+					// Checking local class methods.
+						
+					// Then checking module functions.
+					elsif container.functionExists(name)
+						("call " + name).print
 					// If nothing works, check variables.
 					else
 						arrayDeclaration = false
@@ -561,6 +727,49 @@ module Compiler
 					end
 				end
 				
+				// Negate the value.
+				case Token.Minus
+					primary(true, context)
+					
+					switch context.type.id
+						case BaseType.Bool.int
+							error("can't negate 'bool' type")
+						end
+						
+						case BaseType.Int.int
+							write("neg eax")
+						end
+						
+						case BaseType.Float.int
+							write("fchs")
+						end
+					end
+				end
+				
+				// Ignore a starting plus sign.
+				case Token.Plus
+					primary(true, context)
+				end
+				
+				// Bits inversion.
+				case Token.Not
+					term(true, context)
+					
+					switch context.type.id
+						case BaseType.Bool.int
+							write("cmp eax,0")
+							write("sete al")
+						end
+						
+						case BaseType.Int.int
+							write("not eax")
+						end
+						
+						case BaseType.Float.int
+						end
+					end
+				end
+				
 				// Starts a new expression when encoutering a parenthesis.
 				case Token.Lp
 					//subContext = Context.new(context)
@@ -572,6 +781,101 @@ module Compiler
 					
 					getToken
 				end
+				
+				// Returns to the end of the current block.
+				case Token.Return
+				//	expression(true, 
+					
+				end
+				
+				// Logical test.
+				case Token.If				
+					addDepth(Token.If, pointer)
+					
+					setWriteDepth(1)
+					
+					// Gets the expression for the test.
+					expression(true, Context.new(getType("bool")))
+					
+					write("cmp eax,1")
+					write("je " + mangledName + "_if" + getDepth(0).pointer.string)
+					
+					setWriteDepth(0)
+					
+					write(mangledName + "_if" + getDepth(0).pointer.string + ":")
+					
+					if token == Token.Then then primary(false, context)
+				end
+				
+				// Logical test termination on a single line.
+				case Token.Then
+					if token(-1) != Token.Eol
+						switch getDepth(0).type
+							case Token.If
+								setWriteDepth(1)
+								
+								write("jmp " + mangledName + "_endif" + getDepth(0).pointer.string)
+							
+								setWriteDepth(0)
+							
+								context.level = 0
+								
+								expression(true, context)
+								
+								write(mangledName + "_endif" + getDepth(0).pointer.string + ":")
+							
+								deleteDepth
+							end
+							
+							case Token.Case
+							end
+						end
+					else
+						error("'then' keyword out of place")
+					end
+				end
+				
+				// While loop
+				case Token.While
+					addDepth(Token.While, pointer)
+					
+					write(mangledName + "_while" + getDepth(0).pointer.string)
+					
+					expression(true, context)
+					
+					write("cmp eax,0")
+					write("je " + mangledName + "_endwhile" + getDepth(0).pointer.string)
+				end
+				
+				// End an internal structure/depth.
+				case Token.End
+					if getDepth(0) != null
+						switch getDepth(0).type
+							case Token.Case
+								
+							end
+						
+							// Ends any depth of a logical test.
+							case Token.If
+								setWriteDepth(1)
+								write("jmp " + mangledName + "_endif" + getDepth(0).pointer.string)
+								
+								setWriteDepth(0)
+								write(mangledName + "_endif" + getDepth(0).pointer.string + ":")
+							end
+							
+							// Ends a while...end loop.
+							case Token.While
+								write("jmp " + mangledName + "_while" + getDepth(0).pointer.string)
+								write(mangledName + "_endwhile" + getDepth(0).pointer.string + ":")
+							end
+						end
+						
+						deleteDepth
+					else
+						error("'end' keyword out of place")
+					end
+				end
 			end
 			
 			return context
@@ -582,6 +886,7 @@ module Compiler
 			if context.type.id == BaseType.Void.int then context.type = getType(typeName)
 		end
 		
+		// Call a method.
 		def call(context as Context, baseClass as Class, name as string)
 			function as Function
 			function = null
