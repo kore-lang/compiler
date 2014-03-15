@@ -250,6 +250,8 @@ module Compiler
 							case "using" then return Token.Using
 							
 							case "self" then return Token.Static
+							
+							case "asm" then return Token.Asm
 
 							default then return Token.Name	
 						end

@@ -162,7 +162,7 @@ module Compiler
 		
 		def appendCallCode(assembly as Assembly)
 			i = 0
-			while i < functionCount
+			while i < functionCount				
 				if functions(i).isUsed and functions(i).isAlias 
 					assembly.write("extrn '" + functions(i).binding + "' as " + functions(i).mangledName + ":dword")
 				end

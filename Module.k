@@ -16,8 +16,10 @@ module Compiler
 		
 		types as Type()
 		typeCount as int
+		
+		program as Program
 
-		def new(moduleName as string)
+		def new(moduleName as string, moduleProgram as Program)
 			name = moduleName
 			
 			classes = Class(100)
@@ -34,6 +36,8 @@ module Compiler
 
 			types = Type(100)
 			typeCount = 0
+			
+			program = moduleProgram
 						
 			("Module : " + qualifiedName).print
 		end
@@ -56,7 +60,7 @@ module Compiler
 		end
 		
 		def createType(typeName as string) as Type
-			type = Type.new(typeCount, typeName, 4)
+			type = Type.new(program.nextTypeId, typeName, 4)
 			types(typeCount) = type
 			typeCount++
 			return type
@@ -124,7 +128,7 @@ module Compiler
 		end
 
 		// Adds a new class to the module if possible.
-		def addClass(className as string) as Class
+		def getOrCreateClass(className as string) as Class
 			mclass = getClass(className)
 			if mclass == null
 				mclass = Class.new(className, this)
@@ -328,6 +332,14 @@ module Compiler
 			i = 0
 			while i < classCount
 				classes(i).appendCallCode(assembly)
+				i++
+			end
+		end
+		
+		def showTypes
+			i = 0
+			while i < typeCount
+				("type[" + i.string + "] " + types(i).name + ":" + types(i).id.string).print
 				i++
 			end
 		end

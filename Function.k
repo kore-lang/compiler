@@ -31,6 +31,7 @@ module Compiler
 
 		def new(functionName as string)
 			isStatic = false
+			isUsed = false
 			
 			name = functionName
 
@@ -52,6 +53,7 @@ module Compiler
 
 		def new(functionName as string, functionModule as Module)
 			isStatic = false
+			isUsed = false
 			
 			name = functionName
 
@@ -73,6 +75,7 @@ module Compiler
 
 		def new(functionName as string, functionModule as Module, functionClass as Class)
 			isStatic = false
+			isUsed = false
 
 			name = functionName
 

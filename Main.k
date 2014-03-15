@@ -54,6 +54,7 @@ module Compiler
 			assembly.write(entry + ":")
 				
 			appModule.build(assembly)
+			//appModule.showTypes
 			
 			assembly.write("extrn '_malloc' as malloc:dword")
 			assembly.write("extrn '_core_array_start' as array:dword")

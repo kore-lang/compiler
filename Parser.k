@@ -179,7 +179,7 @@ module Compiler
 					case Token.Class
 						if token(-1) == Token.Eol
 							if getToken == Token.Name
-								newClass = currentModule.addClass(value)						
+								newClass = currentModule.getOrCreateClass(value)						
 								parse(newClass)
 							else
 								error("'class' waits for a name")
@@ -207,6 +207,7 @@ module Compiler
 					case Token.Name
 						if token(-1) == Token.Eol
 							newField = currentClass.addField(value)
+							newField.level = 1
 							
 							// A field declaration MUST be followed by its type.
 							if getToken == Token.As
@@ -218,7 +219,7 @@ module Compiler
 								
 								// When used as array, the pointer level is increased.
 								if token == Token.Array
-									newField.level++
+									newField.level = newField.level + 1
 									getToken
 								end
 								

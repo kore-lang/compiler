@@ -255,20 +255,26 @@ module Compiler
 			
 			do
 				switch token
+					// Or operator.
 					case Token.Or
 						write("push eax")
-						andExpression(true, Context.new(context))
+						andExpression(true, context)
 						write("pop ebx")
 						
 						write("or eax,ebx")
+						
+						context.type = getType("bool")
 					end
 					
+					// Exclusive or.
 					case Token.Xor
 						write("push eax")
-						andExpression(true, Context.new(context))
+						andExpression(true, context)
 						write("pop ebx")
 						
 						write("xor eax,ebx")
+						
+						context.type = getType("bool")
 					end
 					
 					default then return context
@@ -284,13 +290,15 @@ module Compiler
 					case Token.And
 						label = bfunction.mangledName + "_and" + pointer.string
 					
-						while getToken == Token.And
+						while token == Token.And
 							write("cmp eax,0")
 							write("je " + label)
 							
 							subExpression(true, context)
 							
-							if getToken != Token.And then write(label + ":")
+							if token != Token.And then write(label + ":")
+							
+							context.type = getType("bool")
 						end
 					end
 					
@@ -308,7 +316,7 @@ module Compiler
 					// Add the next tere to the current result.
 					case Token.Plus
 						write("push eax")
-						term(true, Context.new(context))
+						type = term(true, Context.new(context)).type
 						write("pop ebx")
 						
 						switch context.type.id
@@ -326,13 +334,17 @@ module Compiler
 								write("call _add_string")
 								write("add esp,8")		
 							end
+							
+							default
+								error("can not add types '" + context.type.name + "' and '" + type.name + "'")
+							end
 						end
 					end
 					
 					// Subtract the current result by the next term.
 					case Token.Minus
 						write("push eax")
-						term(true, Context.new(context))
+						type = term(true, Context.new(context)).type
 						write("pop ebx")
 						
 						switch context.type.id
@@ -343,6 +355,10 @@ module Compiler
 
 							case BaseType.Float.int
 								write("fsubp st1,st0")
+							end
+							
+							default
+								error("can not subtract type '" + context.type.name + "' by type '" + type.name + "'")
 							end
 						end
 					end
@@ -364,10 +380,14 @@ module Compiler
 							// Proper assignation.
 							switch context.type.id
 								case BaseType.Bool.int
-									write("mov [eax],ebx")
+									write("mov byte[eax],bl")
+								end
+								
+								case BaseType.Float.int
+									write("fstp dword[eax]")
 								end
 							
-								case BaseType.Int.int
+								default
 									write("mov [eax],ebx")
 								end
 							end
@@ -510,8 +530,7 @@ module Compiler
 							end
 						end					
 					end
-					
-					
+										
 					case Token.Dot
 						switch context.type.objectType
 							// Analyzing an enumeration post-dot element.
@@ -528,6 +547,14 @@ module Compiler
 								// Code for instancier call.
 								if token == Token.New
 									isNew = true
+									
+									// Allocation code.
+									write("push " + baseClass.size.string)
+									write("call malloc")
+									write("add esp,4")
+									
+									// Check if we explicitly implemented a 'new' method.
+									if !baseClass.functionExists(value) then return context
 								end
 								
 								// Pointer indirection if needed.
@@ -538,8 +565,24 @@ module Compiler
 								// Checking if we're trying to convert.
 								if typeExists(value)
 									"Converting".print
+									
+								// If we're working on a member variable.
 								elsif baseClass.fieldExists(value)
-									"Field".print
+									field = baseClass.getField(value)
+									
+									// Adding field offset relatively to the "this" address.
+									write("add eax," + field.offset.string)
+									
+									context.type = field.type
+									
+									// Indirects if possible.
+									if token(1) == Token.Dot 
+										term(true, context)
+									elsif token(1) == Token.Assign 
+										subExpression(true, context)
+									else
+										indirects(context, field.type)
+									end
 								elsif baseClass.functionExists(value)
 									call(context, baseClass, value)
 								else
@@ -626,10 +669,12 @@ module Compiler
 						context.level = 0
 						
 					// Checking local class methods.
+					elsif bfunction.fclass != null and bfunction.fclass.functionExists(name)
+						("call method " + name).print
 						
 					// Then checking module functions.
 					elsif container.functionExists(name)
-						("call " + name).print
+						("call function " + name).print
 					// If nothing works, check variables.
 					else
 						arrayDeclaration = false
@@ -670,8 +715,6 @@ module Compiler
 									end
 								end
 							elsif token(1) == Token.Assign
-								//skipToken(1)
-								
 								expression(true, context)
 							elsif token(1) == Token.In
 								expression(true, context)
@@ -701,29 +744,21 @@ module Compiler
 							end
 							
 							case Scope.Instance
+								v = getVariable("this")
+								write("mov eax,[ebp-" + v.offset.string + "]")
+								write("add eax," + variable.offset.string)
 							end
 						end
 						
 						// Get the next token if we're not declaring a variable.
+						// Allows for example to get the assign sign.
 						if !variableDeclaration then getToken
 						
 						// Update the buffer with assignation content.
 						if variableDeclaration then buffer.writeTo(assembly)
 						
-                        // Transforms address into data if the next token isn't some kind of assignation.
-						if token != Token.Dot && token != Token.Assign
-							switch variable.type.id
-								case BaseType.Bool.int
-									write("movzx eax,byte[eax]")
-								end
-								
-								case BaseType.Int.int								
-									write("mov eax,[eax]")									
-								end
-							end
-							
-							context.level = context.level - 1
-						end
+                        // Transforms address into data if the next token isn't linked to some kind of pointer work.
+						if token != Token.Dot and token != Token.Assign then indirects(context, variable.type)
 					end
 				end
 				
@@ -807,6 +842,52 @@ module Compiler
 					if token == Token.Then then primary(false, context)
 				end
 				
+				// Inverse condition.
+				case Token.Else
+					if getDepth(0).type == Token.If
+						write("jmp " + mangledName + "_endif" + getDepth(0).pointer.string)
+					
+						setWriteDepth(1)
+						write("jmp " + mangledName + "_else" + getDepth(0).pointer.string)
+						
+						setWriteDepth(0)
+						write(mangledName + "_else" + getDepth(0).pointer.string + ":")
+						
+						// Check if there is a then.
+						if token == Token.Then then primary(false, context)
+					else
+						error("'else' keyword out of place")
+					end
+				end
+				
+				// Filtered inverse condition.
+				case Token.Elsif
+					if getDepth(0).type == Token.If
+						write("jmp " + mangledName + "_endif" + getDepth(0).pointer.string)
+						
+						setWriteDepth(1)
+						
+						context.isAssignable = false
+						expression(true, Context.new(getType("void")))
+						
+						// Code used for the test, which must be true to continue.
+						write("cmp eax,1")
+						write("je " + mangledName + "_elsif" + pointer.string)
+						
+						setWriteDepth(0)
+						
+						write(mangledName + "_elsif" + pointer.string + ":")
+						
+						// Check if there is a then.
+						if token == Token.Then
+							context.isAssignable = true
+							primary(false, context)
+						end
+					else
+						error("'elsif' keyword out of place")
+					end
+				end
+				
 				// Logical test termination on a single line.
 				case Token.Then
 					if token(-1) != Token.Eol
@@ -823,13 +904,19 @@ module Compiler
 								expression(true, context)
 								
 								write(mangledName + "_endif" + getDepth(0).pointer.string + ":")
-							
-								deleteDepth
 							end
 							
 							case Token.Case
+								context.level = 0
+								
+								// Compute then expression.
+								expression(true, context)
+								
+								write("jmp " + mangledName + "_switch" + getDepth(1).pointer)
 							end
 						end
+							
+						deleteDepth
 					else
 						error("'then' keyword out of place")
 					end
@@ -847,12 +934,112 @@ module Compiler
 					write("je " + mangledName + "_endwhile" + getDepth(0).pointer.string)
 				end
 				
+				// Switch opening.
+				case Token.Switch
+					context.isAssignable = false
+					
+					// Compute the expression.
+					expression(true, context)
+					
+					// Saves the current result in the stack.
+					write("push eax")
+					
+					addDepth(Token.Switch, pointer)
+				end
+				
+				// Conditionnal case
+				case Token.Case
+					if getDepth(0).type == Token.Switch
+						addDepth(Token.Case, pointer)
+					
+						setWriteDepth(2)
+					
+						// Repeating the case check for each option.
+						repeat
+							term(true, context)
+							
+							write("mov ebx,[esp]")
+						
+							switch context.type.id
+								case BaseType.Float.int
+									write("fcompp")
+									write("fstsw ax")
+									write("sahf")
+								end
+								
+								case BaseType.String.int
+									write("push eax")
+									write("call _cmp_string")
+									write("add esp,4")
+									write("cmp eax,1")
+								end
+								
+								default								
+									write("cmp eax,ebx")
+								end
+							end
+							
+							write("je " + mangledName + "_case" + getDepth(0).pointer.string)
+							
+							// Get the next token if we have a case list.
+							if token(1) == Token.Comma then getToken
+							
+						until token != Token.Comma
+						
+						setWriteDepth(0)
+						
+						write(mangledName + "_case" + getDepth(0).pointer.string + ":")
+						write("add esp,4")
+					else
+						error("'case' must be included in a switch structure")
+					end
+				end
+				
+				// Switch default case
+				case Token.Default
+				
+					// Default token is valid only in a switch block.
+					if getDepth(0).type == Token.Switch
+						addDepth(Token.Default, pointer)
+						
+						setWriteDepth(2)
+						write("jmp " + mangledName + "_default" + getDepth(0).pointer.string)
+						
+						setWriteDepth(0)
+						write(mangledName + "_default" + getDepth(0).pointer.string + ":")
+						
+						// Removes the push made for the switch.
+						write("add esp,4")
+					else
+						error("'default' must be included in a switch structure")
+					end
+				end
+				
 				// End an internal structure/depth.
 				case Token.End
 					if getDepth(0) != null
 						switch getDepth(0).type
-							case Token.Case
+							// Close a switch structure.
+							case Token.Switch
+								setWriteDepth(1)
 								
+								write("add esp,4")
+								write("jmp " + mangledName + "_switch" + getDepth(0).pointer.string)
+								
+								setWriteDepth(0)
+								
+								write("add esp,4")
+								write(mangledName + "_switch" + getDepth(0).pointer.string + ":")
+							end
+						
+							// Closes a case of a switch.
+							case Token.Case
+								// Delete the depth of each extra case.
+								while getDepth(1).type != Token.Switch
+									deleteDepth
+								end
+								
+								write("jmp " + mangledName + "_switch" + getDepth(1).pointer.string)
 							end
 						
 							// Ends any depth of a logical test.
@@ -876,6 +1063,13 @@ module Compiler
 						error("'end' keyword out of place")
 					end
 				end
+				
+				// Inline assembler.
+				case Token.Asm
+					while getToken != Token.End
+						write(value)
+					end
+				end
 			end
 			
 			return context
@@ -884,6 +1078,21 @@ module Compiler
 		// Overwrites the current type if it is void.
 		def overType(context as Context, typeName as string)
 			if context.type.id == BaseType.Void.int then context.type = getType(typeName)
+		end
+		
+		// Adds derefencing code for the given type.
+		def indirects(context as Context, type as Type)
+			switch type.id
+				case BaseType.Bool.int
+					write("movzx eax,byte[eax]")
+				end
+				
+				case BaseType.Int.int								
+					write("mov eax,[eax]")
+				end
+			end
+			
+			context.level = context.level - 1
 		end
 		
 		// Call a method.
@@ -954,7 +1163,7 @@ module Compiler
 			// Setter function
 			if token == Token.Assign
 			end
-			
+						
 			function = baseClass.getFunction(name, types, typeCount)
 			
 			// Calling the function if not null.
@@ -979,6 +1188,8 @@ module Compiler
 				end
 					
 				//context.type = function.
+			else
+				error("type " + baseClass.name + " has no function " + name)
 			end
 			
 			// If we have to perform a chained call.

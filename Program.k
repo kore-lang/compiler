@@ -22,6 +22,8 @@ module Compiler
 		
 		count as int
 		
+		typeCount as int
+		
 		includeString as string
 
 		def new(appName as string, appPath as string)
@@ -43,10 +45,21 @@ module Compiler
 			sourceCount = 0
 			
 			count = 0
+						
+			m = addModule("Kore")
+			m.loadBaseTypes
 			
-			addModule("Kore").loadBaseTypes
+			typeCount = m.typeCount
 			
 			("Create program " + name).print
+		end
+		
+		// Get the next type ID.
+		def nextTypeId as int
+			a = typeCount
+			typeCount++
+			
+			return a
 		end
 		
 		def addSource(source as Source)
@@ -107,8 +120,8 @@ module Compiler
 			newModule = getModule(moduleName)
 
 			if newModule == null
-				newModule = Module.new(moduleName)
-				modules(moduleCount) = newModule 
+				newModule = Module.new(moduleName, this)
+				modules(moduleCount) = newModule
 				moduleCount++
 			end			
 

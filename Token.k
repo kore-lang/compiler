@@ -93,5 +93,7 @@ module Compiler
 		Error
 		
 		Static
+		
+		Asm			// Inline assembler.
 	end
 end
