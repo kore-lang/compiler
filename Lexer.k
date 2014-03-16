@@ -269,6 +269,9 @@ module Compiler
 							case "self" then return Token.Static
 							
 							case "asm" then return Token.Asm
+							
+							case "break" then return Token.Break
+							case "continue" then return Token.Continue
 
 							default then return Token.Name	
 						end

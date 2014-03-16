@@ -556,7 +556,7 @@ module Compiler
 								
 								// Pointer indirection if needed.
 								if context.level > 0 then indirects(context, context.type)
-								
+																
 								// Checking if we're trying to convert.
 								if typeExists(value)
 									type = getType(value)
@@ -724,6 +724,7 @@ module Compiler
 									
 									// Chained call.
 									if token(1) == Token.Dot then term(true, context)
+									
 								// If we're working on a member variable.
 								elsif baseClass.fieldExists(value)
 									field = baseClass.getField(value)
@@ -740,6 +741,7 @@ module Compiler
 										subExpression(true, context)
 									else
 										indirects(context, field.type)
+										getToken
 									end
 								elsif baseClass.functionExists(value)
 									call(context, baseClass, value)
@@ -820,6 +822,22 @@ module Compiler
 						
 						// Array instanciation.
 						if getToken == Token.Lp
+							context.type = type
+							context.level = context.level + 1
+							
+							// Get the expression which will yield a result on eax.
+							expression(true, Context.new(getType("int")))
+							
+							if token != Token.Rp then error("index not closed")
+							
+							// Loads the size on stack of the type, then multiply by it.
+							write("mov ebx," + type.size.string)
+							write("imul ebx")
+							write("push eax")
+							write("call malloc")
+							write("add esp,4")
+							
+							getToken
 						else
 							context.type = type
 						end
@@ -833,9 +851,11 @@ module Compiler
 						write("mov eax,[ebp-" + v.offset.string + "]")
 						
 						call(context, bfunction.fclass, value)
+						
 					// Then checking module functions.
 					elsif container.functionExists(name)
 						("unimplemeted call of function " + name).print
+						
 					// If nothing works, check variables.
 					else
 						arrayDeclaration = false
@@ -864,11 +884,8 @@ module Compiler
 									
 									// Array declaration.
 									if token(1) == Token.Lp
-										 arrayDeclaration = true
-										
-										if token(2)
-											expression(false, Context.new(context))
-										end								
+									"array".print
+										primary(false, context)										
 									elsif token(1) == Token.Dot
 										write("mov ebx,eax")
 										expression(true, Context.new(context))
@@ -888,8 +905,6 @@ module Compiler
 														
 							// Effectively creates the new variable.
 							variable = createVariable(name, context.type, 1)
-							
-							//variable.offset
 						else
 							variable = getVariable(name)
 						end
@@ -915,14 +930,46 @@ module Compiler
 						// Allows for example to get the assign sign.
 						if !variableDeclaration then getToken
 						
+						// Index operator.
+						if token == Token.Lp
+							write("mov eax,[eax]")
+							write("push eax")
+							
+							expression(true, Context.new(getType("int")))
+							
+							if token != Token.Rp then error("index not closed")
+							
+							write("mov ebx," + context.type.size.string)
+							write("imul ebx")
+							write("pop ebx")
+							write("add eax,ebx")
+							
+							context.level = context.level - 1
+							
+							getToken
+						end
+						
 						// Update the buffer with assignation content.
 						if variableDeclaration then buffer.writeTo(assembly)
 						
 						// Saves the pointer if what is incoming is an increment/decrement opreator.
 						if token == Token.Inc or token == Token.Dec then primary(false, context)
 						
-                        // Transforms address into data if the next token isn't linked to some kind of pointer work.
-						if token != Token.Dot and token != Token.Assign then indirects(context, variable.type)
+						// Depending of the token, follow with different methods.
+						switch token	
+							case Token.Dot
+								term(false, context)
+							end
+							
+							case Token.Assign
+								subExpression(false, context)
+							end
+						
+							// Transforms address into data if the next token isn't linked to some kind of pointer work.
+							default
+								indirects(context, variable.type)
+							end
+						end
 					end
 				end
 				
@@ -1394,31 +1441,29 @@ module Compiler
 			types = Type(10)
 			typeCount = 0
 			
-			// Parameters list.
+			// Read the parameters list.
 			if token == Token.Lp
 				while token != Token.Eol
 					
-					// Check for the end of parameters list.
+					// Check for the end of the parameters list.
 					if token == Token.Rp then break
 					
 					// Comma : going to the next argument.
 					if token == Token.Comma
+					
 						// Check is there was a previous argument
-						if argument == 0
-							error("first parameter is empty")
-						else
-							argument++
-						end
+						if typeCount == 0 then error("first argument is empty")
 					end
 					
-					// Read the type emitted for each argument.
+					// Read the type returned for each argument.
 					type = expression(true, Context.new(getType("void"))).type
 					
+					// The returned type must not be void.
 					if type.id != BaseType.Void.int
 						types(typeCount) = type
 						typeCount++
 					else
-						error("invalid argument")
+						error("invalid type argument, void returned for argument at zero-based index " + typeCount.string)
 					end
 					
 					write("mov dword [esp+" + stackSize.string + "],eax")
@@ -1462,15 +1507,27 @@ module Compiler
 					write("pop ebx")
 				end
 					
-				//context.type = function.
-			else
-				error("type " + baseClass.name + " has no function " + name)
+			
+				// Updating the current type with the one returned byt the function.
+				context.type = function.returnType
+			else			
+				if typeCount > 0
+					typeString = string.empty
+					i = 0
+					while i < typeCount
+						if i != 0 then typeString = typeString + ","
+						typeString = typeString + types(i).name
+						i++
+					end
+					
+					error("type " + baseClass.name + " has no function " + name + " with argument(s) " + typeString)
+				else
+					error("type " + baseClass.name + " has no function " + name + " without arguments")
+				end
 			end
 			
 			// If we have to perform a chained call.
-			if token == Token.Dot
-				term(false, context)
-			end
+			if token == Token.Dot then term(false, context)
 		end
 	end
 end

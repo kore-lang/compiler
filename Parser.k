@@ -275,6 +275,7 @@ module Compiler
 													// Waiting for the typing of the argument.
 													if token(1) == Token.As
 														newArgument = newFunction.addArgument(value)
+														newArgument.level = 1
 														
 														getToken
 														
@@ -285,7 +286,7 @@ module Compiler
 															// If the parameter is an array, we increase its level.
 															if token(1) == Token.Array
 																getToken
-																newArgument.level++
+																newArgument.level = newArgument.level + 1
 															end
 														else
 															error("type name waited after 'as' keyword")
@@ -323,7 +324,7 @@ module Compiler
 											// Array : increasing pointer level.
 											if token(1) == Token.Array
 												getToken
-												newFunction.level++
+												newFunction.level = newFunction.level + 1
 											end
 										else
 											error("function return must be a type name")
@@ -331,6 +332,9 @@ module Compiler
 										
 										getToken
 									end
+									
+									// Defaults to void return if not explicitly typed.
+									if newFunction.returnKey == null then newFunction.returnKey = "void"
 									
 									// Setter function.
 									if token == Token.Assign

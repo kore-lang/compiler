@@ -84,6 +84,9 @@ module Compiler
 
 		Do
 		Loop
+		
+		Break		// Breaking the execution of some depthes of code.
+		Continue	// Used to ignore code and continue exection at some depth.
 
 		While
 

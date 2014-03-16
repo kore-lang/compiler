@@ -8,7 +8,7 @@ module Compiler
 	
 		entry = "_main"
 	
-		program = Program.load("F:\\kore-lang\\compiler")
+		program = Program.load("F:\\kore-lang\\dev")
 		
 		Console.next
 		"Loading...".print

@@ -5,6 +5,7 @@ module Compiler
 
 		returnArgument as Field
 		returnKey as string
+		returnType as Type
 
 		block as Block
 
@@ -48,6 +49,8 @@ module Compiler
 			setterArgument = null
 			binding = string.empty
 			
+			returnType = null
+			
 			("Function : " + qualifiedName).print
 		end
 
@@ -70,6 +73,8 @@ module Compiler
 			setterArgument = null
 			binding = string.empty
 			
+			returnType = null
+			
 			("Function : " + qualifiedName).print
 		end
 
@@ -91,6 +96,8 @@ module Compiler
 			
 			setterArgument = null
 			binding = string.empty
+			
+			returnType = null
 			
 			("Function : " + qualifiedName).print
 		end
@@ -178,6 +185,7 @@ module Compiler
 			return _argumentSize
 		end
 		
+		// Links types to every usage.
 		def linkTypes
 			i = 0
 			while i < argumentCount
@@ -185,7 +193,8 @@ module Compiler
 				i++
 			end
 			
-			
+			// Links the return type.
+			returnType = fmodule.getType(returnKey)
 		end
 		
 		def build(assembly as Assembly)
