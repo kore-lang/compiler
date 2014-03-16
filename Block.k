@@ -564,8 +564,171 @@ module Compiler
 								
 								// Checking if we're trying to convert.
 								if typeExists(value)
-									"Converting".print
+									type = getType(value)
 									
+									switch context.type.id
+									
+										// Converts bool to some type.
+										case BaseType.Bool.int
+											switch type.id
+											
+												// Bool to bool.
+												case BaseType.Bool.int
+													error("useless conversion from bool to bool")
+												end
+												
+												// Bool to int.
+												case BaseType.Int.int
+													write("movex eax,al")
+												end
+												
+												// Bool to float.
+												// case BaseType.Float.int
+												// end
+												
+												// Bool to string.
+												// case BaseType.String.int
+												// end
+												
+												default
+													error("can not convert from " + context.type.name + " to " + type.name)
+												end
+											end
+										end
+										
+										// Converts int to some type.
+										case BaseType.Int.int
+											switch type.id
+											
+												// Int to bool.
+												// case BaseType.Bool.int
+												// end
+												
+												// Int to int.
+												case BaseType.Int.int
+													error("useless conversion from int to int")
+												end
+												
+												// Int to float.
+												case BaseType.Float.int
+													write("sub esp,4")
+													write("mov dword[esp],eax")
+													write("fild dword[esp]")
+													write("add esp,4")
+												end
+												
+												// Int to string.
+												case BaseType.String.int
+													write("push eax")
+													write("call _int_tostring")
+													write("add esp,4")
+												end
+												
+												default
+													error("can not convert from " + context.type.name + " to " + type.name)
+												end
+											end
+										end
+									
+										// Converts float to some type.
+										case BaseType.Float.int
+											switch type.id
+											
+												// Float to bool
+												// case BaseType.Bool.int
+												// end
+												
+												// Float to int.
+												case BaseType.Int.int
+													write("sub esp,4")
+													write("fistp dword [esp]")
+													write("pop eax")
+												end
+												
+												// Float to float.
+												case BaseType.Float.int
+													error("useless conversion from float to float")
+												end
+												
+												// Float to string.
+												// case BaseType.String.int
+												// end
+												
+												default
+													error("can not convert from " + context.type.name + " to " + type.name)
+												end
+											end
+										end
+										
+										// String to some type.
+										case BaseType.String.int
+											switch type.id
+											
+												// Int to bool.
+												// case BaseType.Bool.int
+												// end
+												
+												// String to int.
+												case BaseType.Int.int
+													write("push eax")
+													write("call _string_toint")
+													write("add esp,4")
+												end
+												
+												// String to float.
+												// case BaseType.Float.int
+												// end
+												
+												// String to string.
+												case BaseType.String.int
+													error("useless conversion from string to string")
+												end
+												
+												default
+													error("can not convert from " + context.type.name + " to " + type.name)
+												end
+											end
+										end
+										
+										// Any other type to some other type.
+										default
+											switch type.id
+											
+												// X to bool.
+												// case BaseType.Bool.int
+												// end
+												
+												// X to int "converts" to pointer.
+												case BaseType.Int.int
+													context.level = 0
+												end
+												
+												// X to float.
+												// case BaseType.Float.int
+												// end
+												
+												// X to string.
+												// case BaseType.String.int
+												// end
+												
+												// X to Y
+												default
+												
+													// Trying to self-convert ? Useless.
+													if type == context.type
+														error("useless conversion from " + context.type.name + " to " + type.name)
+													else
+														error("can not convert from " + context.type.name + " to " + type.name)
+													end
+												end
+											end
+										end
+									end
+													
+									context.type = type
+									
+									// Chained call.
+									if token(1) == Token.Dot then term(true, context)
 								// If we're working on a member variable.
 								elsif baseClass.fieldExists(value)
 									field = baseClass.getField(value)
@@ -670,11 +833,14 @@ module Compiler
 						
 					// Checking local class methods.
 					elsif bfunction.fclass != null and bfunction.fclass.functionExists(name)
-						("call method " + name).print
+						write("mov ebx,eax")
+						v = getVariable("this")
+						write("mov eax,[ebp-" + v.offset.string + "]")
 						
+						call(context, bfunction.fclass, value)
 					// Then checking module functions.
 					elsif container.functionExists(name)
-						("call function " + name).print
+						("unimplemeted call of function " + name).print
 					// If nothing works, check variables.
 					else
 						arrayDeclaration = false
@@ -839,7 +1005,10 @@ module Compiler
 					
 					write(mangledName + "_if" + getDepth(0).pointer.string + ":")
 					
-					if token == Token.Then then primary(false, context)
+					if token == Token.Then 
+						context.isAssignable = true
+						primary(false, context)
+					end
 				end
 				
 				// Inverse condition.
@@ -854,7 +1023,10 @@ module Compiler
 						write(mangledName + "_else" + getDepth(0).pointer.string + ":")
 						
 						// Check if there is a then.
-						if token == Token.Then then primary(false, context)
+						if token == Token.Then 
+							context.isAssignable = true
+							primary(false, context)
+						end
 					else
 						error("'else' keyword out of place")
 					end
@@ -867,7 +1039,7 @@ module Compiler
 						
 						setWriteDepth(1)
 						
-						context.isAssignable = false
+						//context.isAssignable = false
 						expression(true, Context.new(getType("void")))
 						
 						// Code used for the test, which must be true to continue.
@@ -879,10 +1051,7 @@ module Compiler
 						write(mangledName + "_elsif" + pointer.string + ":")
 						
 						// Check if there is a then.
-						if token == Token.Then
-							context.isAssignable = true
-							primary(false, context)
-						end
+						if token == Token.Then then primary(false, context)
 					else
 						error("'elsif' keyword out of place")
 					end
@@ -893,30 +1062,51 @@ module Compiler
 					if token(-1) != Token.Eol
 						switch getDepth(0).type
 							case Token.If
-								setWriteDepth(1)
-								
+								setWriteDepth(1)								
 								write("jmp " + mangledName + "_endif" + getDepth(0).pointer.string)
 							
-								setWriteDepth(0)
-							
-								context.level = 0
-								
-								expression(true, context)
+								setWriteDepth(0)							
+								expression(true, Context.new(getType("void")))
 								
 								write(mangledName + "_endif" + getDepth(0).pointer.string + ":")
+							
+								deleteDepth
 							end
 							
+							// Case on a single line.
 							case Token.Case
-								context.level = 0
+								// Delete the depth of each extra case.
+								while getDepth(0).type != Token.Switch
+									deleteDepth
+								end
+												
+								// Compute the expression.
+								expression(true, Context.new(getType("void")))								
+								write("jmp " + mangledName + "_switch" + getDepth(0).pointer.string)
+							end
+							
+							// Default depth closing.
+							case Token.Default
+								expression(true, Context.new(getType("void")))
+							
+								deleteDepth
+							end
+							
+							// While on a single line.
+							case Token.While
+								expression(true, Context.new(getType("void")))
 								
-								// Compute then expression.
-								expression(true, context)
+								write("jmp " + mangledName + "_while" + getDepth(0).pointer.string)
+								write(mangledName + "_endwhile" + getDepth(0).pointer.string + ":")
 								
-								write("jmp " + mangledName + "_switch" + getDepth(1).pointer)
+								deleteDepth
+							end
+							
+							// No match : keyword out of place.
+							default
+								error("'then' keyword out of place")
 							end
 						end
-							
-						deleteDepth
 					else
 						error("'then' keyword out of place")
 					end
@@ -926,12 +1116,59 @@ module Compiler
 				case Token.While
 					addDepth(Token.While, pointer)
 					
-					write(mangledName + "_while" + getDepth(0).pointer.string)
+					write(mangledName + "_while" + getDepth(0).pointer.string + ":")
 					
 					expression(true, context)
 					
 					write("cmp eax,0")
 					write("je " + mangledName + "_endwhile" + getDepth(0).pointer.string)
+					
+					// Ends the while loop on a single line.
+					if token == Token.Then then primary(false, context)
+				end
+				
+				// Repeat loop start.
+				case Token.Repeat
+					addDepth(Token.Repeat, pointer)
+					write(mangledName + "_repeat" + getDepth(0).pointer.string + ":")
+				end
+				
+				// Closing repeat loop
+				case Token.Until
+					// Require to be inside a repeat block.
+					if getDepth(0).type == Token.Repeat
+						context.isAssignable = false
+						
+						expression(true, context)
+						
+						write("cmp eax,0")
+						write("je " + mangledName + "_repeat" + getDepth(0).pointer.string)
+						write(mangledName + "_until" + getDepth(0).pointer.string + ":")
+						
+						deleteDepth					
+					else
+						error("'until' keyword out of place")
+					end
+				end
+				
+				// Infinite loop start.
+				case Token.Do
+					write(mangledName + "_do" + pointer.string + ":")					
+					addDepth(Token.Do, pointer)
+				end
+				
+				// Looping.
+				case Token.Loop
+				
+					// Require to be in a do depth.
+					if getDepth(0).type == Token.Do
+						write("jmp " + mangledName + "_do" + getDepth(0).pointer.string)
+						write(mangledName + "_loop" + getDepth(0).pointer.string + ":")
+						
+						deleteDepth
+					else
+						error("'loop' keyword out of place")
+					end
 				end
 				
 				// Switch opening.
@@ -955,6 +1192,7 @@ module Compiler
 						setWriteDepth(2)
 					
 						// Repeating the case check for each option.
+						context.isAssignable = false
 						repeat
 							term(true, context)
 							
@@ -981,15 +1219,16 @@ module Compiler
 							
 							write("je " + mangledName + "_case" + getDepth(0).pointer.string)
 							
-							// Get the next token if we have a case list.
 							if token(1) == Token.Comma then getToken
-							
 						until token != Token.Comma
 						
 						setWriteDepth(0)
 						
 						write(mangledName + "_case" + getDepth(0).pointer.string + ":")
 						write("add esp,4")
+						
+						// Closes the case.
+						if token == Token.Then then primary(false, Context.new(getType("void")))
 					else
 						error("'case' must be included in a switch structure")
 					end
@@ -1008,7 +1247,7 @@ module Compiler
 						setWriteDepth(0)
 						write(mangledName + "_default" + getDepth(0).pointer.string + ":")
 						
-						// Removes the push made for the switch.
+						// Removes the push made by the switch.
 						write("add esp,4")
 					else
 						error("'default' must be included in a switch structure")
@@ -1019,6 +1258,7 @@ module Compiler
 				case Token.End
 					if getDepth(0) != null
 						switch getDepth(0).type
+						
 							// Close a switch structure.
 							case Token.Switch
 								setWriteDepth(1)
@@ -1028,12 +1268,12 @@ module Compiler
 								
 								setWriteDepth(0)
 								
-								write("add esp,4")
 								write(mangledName + "_switch" + getDepth(0).pointer.string + ":")
 							end
 						
 							// Closes a case of a switch.
 							case Token.Case
+							
 								// Delete the depth of each extra case.
 								while getDepth(1).type != Token.Switch
 									deleteDepth
