@@ -20,6 +20,10 @@ module Compiler
 		sources as Source()
 		sourceCount as int
 		
+		// Storage of strings.
+		strings as string()
+		stringCount as int
+		
 		count as int
 		
 		typeCount as int
@@ -44,6 +48,9 @@ module Compiler
 			sources = Source(100)
 			sourceCount = 0
 			
+			strings = string(1000)
+			stringCount = 0
+			
 			count = 0
 						
 			m = addModule("Kore")
@@ -52,6 +59,54 @@ module Compiler
 			typeCount = m.typeCount
 			
 			("Create program " + name).print
+		end
+		
+		// Retrieve the index for the given string.
+		def getStringIndex(str as string) as int
+			i = 0
+			while i < stringCount
+				if strings(i) == str then return i
+				i++
+			end
+			
+			return -1
+		end
+		
+		// Retrieve or create a new string containing the given data.
+		def getOrCreateString(str as string) as int
+			index = getStringIndex(str)
+			
+			// If we haven't find the string, adds a new one with the data.
+			if index == -1
+				index = stringCount
+				strings(stringCount) = str
+				stringCount++
+			end
+			
+			return index
+		end
+		
+		// Write strings data to the given assembly.
+		def writeStrings(assembly as Assembly)
+			i = 0
+			
+			// For each string...
+			while i < stringCount
+				j = 0
+				line = "_S" + i.string + " db "
+				s = strings(i)
+				
+				// Writes characters.
+				while j < s.length					
+					line = line + s.value(j).string + ","
+					j++
+				end
+				i++
+				
+				line = line + "0"
+				
+				assembly.write(line)
+			end
 		end
 		
 		// Get the next type ID.

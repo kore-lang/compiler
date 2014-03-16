@@ -33,6 +33,9 @@ module Compiler
 		Minus
 		Mul
 		Div
+		
+		Inc			// Decrement.
+		Dec			// Increment.
 
 		SelfAdd		// Add to itself.
 		SelfSub		// Substract from itself.

@@ -8,7 +8,7 @@ module Compiler
 	
 		entry = "_main"
 	
-		program = Program.load("F:\\kore-lang\\dev")
+		program = Program.load("F:\\kore-lang\\compiler")
 		
 		Console.next
 		"Loading...".print
@@ -41,10 +41,19 @@ module Compiler
 			Console.next
 			"Type link ok".print
 			
+			moduleAssembly = appModule.build
+			
+			Console.next
+			"Program built".print
+			
+			Console.next
+			
 			assembly = Assembly.new
 			
 			assembly.write("format MS COFF")
 			assembly.write("section '.data' data readable writeable")
+			
+			program.writeStrings(assembly)
 			
 			assembly.write("section '.code' code readable writeable")
 			
@@ -52,8 +61,8 @@ module Compiler
 			assembly.write("extrn __fltused")
 
 			assembly.write(entry + ":")
-				
-			appModule.build(assembly)
+			
+			moduleAssembly.writeTo(assembly)
 			//appModule.showTypes
 			
 			assembly.write("extrn '_malloc' as malloc:dword")

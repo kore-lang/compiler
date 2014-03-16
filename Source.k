@@ -10,7 +10,7 @@ module Compiler
 			fileName = sourceFile
 			name = fileName.lastSegment("\\")
 			
-			lines = CodeLine(1000)
+			lines = CodeLine(2000)
 			lineCount = 0
 		end
 		

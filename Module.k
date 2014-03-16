@@ -16,7 +16,7 @@ module Compiler
 		
 		types as Type()
 		typeCount as int
-		
+				
 		program as Program
 
 		def new(moduleName as string, moduleProgram as Program)
@@ -57,6 +57,10 @@ module Compiler
 			addClass(Class.new("double", this), Type.new(8))
 			addClass(Class.new("string", this), Type.new(4))
 			addClass(Class.new("entity", this), Type.new(4))
+		end
+		
+		def getOrCreateString(str as string) as int
+			return program.getOrCreateString(str)
 		end
 		
 		def createType(typeName as string) as Type
@@ -304,7 +308,9 @@ module Compiler
 			end
 		end
 		
-		def build(assembly as Assembly)
+		def build as Assembly
+			assembly = Assembly.new
+		
 			assembly.write("push ebp")
 			assembly.write("mov ebp,esp")
 			
@@ -326,6 +332,8 @@ module Compiler
 			end
 			
 			appendCallCode(assembly)
+			
+			return assembly
 		end
 		
 		def	appendCallCode(assembly as Assembly)

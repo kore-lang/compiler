@@ -15,7 +15,7 @@ module Compiler
 			value = lexValue
 			line = lexLine
 
-			if token == Token.Error then this.print
+			if token == Token.Error then error("unknown token '" + value + "'")
 		end
 
 		def print

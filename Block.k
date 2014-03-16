@@ -18,14 +18,15 @@ module Compiler
 		
 		bfunction as Function
 		
-		strings as string()
-		stringCount as int
-
+		limit as int
+		
 		def new(blockFunction as Function)
+			limit = 5000
+			
 			id = 0
 			stack = 0
 		
-			tokens = LexToken(2000)
+			tokens = LexToken(limit)
 			tokenCount = 0
 
 			depthes = Depth(100)
@@ -33,9 +34,6 @@ module Compiler
 
 			variables = Variable(100)
 			variableCount = 0
-			
-			strings = string(200)
-			stringCount = 0
 			
 			pointer = 0
 			
@@ -119,17 +117,16 @@ module Compiler
 			return null
 		end
 		
-		def addString(str as string) as int
-			strings(stringCount) = str
-			stringCount++
-			return stringCount - 1
+		// Retrieve or create a new string.
+		def getOrCreateString(str as string) as int
+			return container.getOrCreateString(str)
 		end
 
 		def addToken(blockToken as LexToken)
 			tokens(tokenCount) = blockToken
 			tokenCount++
 			
-			if tokenCount == 2000 then "token increase needed".print
+			if tokenCount == limit then "Block token list increase needed".print
 		end
 		
 		// Adds a new depth to the current block.
@@ -558,9 +555,7 @@ module Compiler
 								end
 								
 								// Pointer indirection if needed.
-								if context.level > 0
-									write("mov eax,[eax]")
-								end
+								if context.level > 0 then indirects(context, context.type)
 								
 								// Checking if we're trying to convert.
 								if typeExists(value)
@@ -809,7 +804,7 @@ module Compiler
 				// Loads string pointer.
 				case Token.String
 					write("mov ebx,eax")
-					write("mov eax,_S" + addString(value).string)
+					write("mov eax,_S" + getOrCreateString(value).string)
 					
 					if token(-1) != Token.Case then getToken
 					
@@ -923,6 +918,9 @@ module Compiler
 						// Update the buffer with assignation content.
 						if variableDeclaration then buffer.writeTo(assembly)
 						
+						// Saves the pointer if what is incoming is an increment/decrement opreator.
+						if token == Token.Inc or token == Token.Dec then primary(false, context)
+						
                         // Transforms address into data if the next token isn't linked to some kind of pointer work.
 						if token != Token.Dot and token != Token.Assign then indirects(context, variable.type)
 					end
@@ -950,6 +948,44 @@ module Compiler
 				// Ignore a starting plus sign.
 				case Token.Plus
 					primary(true, context)
+				end
+				
+				// Increase.
+				case Token.Inc
+					if token(-1) == Token.Name
+						switch context.type.id
+							case BaseType.Int.int
+								write("inc dword[eax]")
+							end
+							
+							default
+								error("increment operator is not valid with type " + context.type.name)
+							end
+						end
+						
+						getToken
+					else
+						error("increment operator out of place")
+					end
+				end
+				
+				// Decrease.
+				case Token.Dec
+					if token(-1) == Token.Name
+						switch context.type.id
+							case BaseType.Int.int
+								write("dec dword[eax]")
+							end
+							
+							default
+								error("decrement operator is not valid with type " + context.type.name)
+							end
+						end
+						
+						getToken
+					else
+						error("decrement operator out of place")
+					end
 				end
 				
 				// Bits inversion.
@@ -1327,7 +1363,7 @@ module Compiler
 					write("movzx eax,byte[eax]")
 				end
 				
-				case BaseType.Int.int								
+				default						
 					write("mov eax,[eax]")
 				end
 			end
@@ -1385,8 +1421,7 @@ module Compiler
 						error("invalid argument")
 					end
 					
-					
-					write("mov dword [esp+" + stackSize.string + "],eax");
+					write("mov dword [esp+" + stackSize.string + "],eax")
 					
 					stackSize = stackSize + type.size
 					

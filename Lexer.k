@@ -16,12 +16,16 @@ module Compiler
 
 		token as Token
 		value as string
+		
+		limit as int
 
 		def new(lexCode as CodeLine(), size as int)
+			limit = 50000
+			
 			inString = false
 			pointer = 0
 
-			tokens = LexToken(10000)
+			tokens = LexToken(limit)
 			code = lexCode
 	
 			lines = size
@@ -39,6 +43,9 @@ module Compiler
 				// Extract all tokens from the current line.
 				repeat
 					pointer++
+					
+					if pointer == limit then "Lexer token list increase required".print
+					
 					tokens(pointer) = LexToken.new(getToken, value, code(currentLine))
 					value = string.empty
 				until tokens(pointer).token == Token.Eol
@@ -82,6 +89,11 @@ module Compiler
 						return Token.SelfAdd
 					end
 					
+					if next == "+" 
+						line = line.erase(1)
+						return Token.Inc
+					end
+					
 					return Token.Plus
 				end
 				
@@ -89,6 +101,11 @@ module Compiler
 					if next == "=" 
 						line = line.erase(1)
 						return Token.SelfSub
+					end
+					
+					if next == "-" 
+						line = line.erase(1)
+						return Token.Dec
 					end
 					
 					return Token.Minus
