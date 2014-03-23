@@ -192,10 +192,11 @@ module Compiler
 			// Copy from the local assembly to the global one.
 			assembly.writeTo(blockAssembly)
 			
+			// Label for return jump.
+			blockAssembly.write("end_" + bfunction.mangledName + ":")
+			
 			// Restore the stack.
 			if stack > 0 then blockAssembly.write("add esp," + stack.string)
-			
-			blockAssembly.write("end_" + bfunction.mangledName + ":")
 		end
 		
 		def write(line as string)
@@ -367,12 +368,15 @@ module Compiler
 							
                             // Keep the type of the expression result to assign.
 							write("push eax")
-							type = expression(true, Context.new(context)).type
+							returnContext = expression(true, Context.new(context))
 							write("mov ebx,eax")
 							write("pop eax")
 							
+							// Keep the level read from the expression.
+							context.level = returnContext.level
+							
                             // Use this type if the local context is not strongly typed.
-							if context.type.id == BaseType.Void.int then context.type = type
+							if context.type.id == BaseType.Void.int then context.type = returnContext.type
 							
 							// Proper assignation.
 							switch context.type.id
@@ -403,15 +407,7 @@ module Compiler
 						subExpression(true, context)
 						write("pop ebx")
 						
-						switch context.type.id
-							case BaseType.Bool.int
-								write("cmp eax,ebx")
-							end
-						
-							case BaseType.Int.int
-								write("cmp eax,ebx")
-							end
-							
+						switch context.type.id							
 							case BaseType.Float.int
 								write("fcompp")
 								write("fstsw ax")
@@ -424,6 +420,10 @@ module Compiler
 								write("call _cmp_string")
 								write("add esp,8")
 								write("cmp eax,1")
+							end
+							
+							default
+								write("cmp eax,ebx")
 							end
 						end
 						
@@ -530,8 +530,52 @@ module Compiler
 										
 					case Token.Dot
 						switch context.type.objectType
+						
 							// Analyzing an enumeration post-dot element.
 							case ObjectType.Enumeration
+								getToken
+								baseEnum = container.getEnum(context.type.name)
+							
+								// Tries to convert the enum.
+								if context.level == 0
+									if typeExists(value)
+										type = getType(value)
+										
+										switch type.id
+											case BaseType.Int.int
+												context.type = type
+											end
+											
+											case BaseType.String.int
+												write("push eax")
+												write("call _int_tostring")
+												write("add esp,4")
+												
+												context.type = type
+											end
+												
+											default
+												error("can not convert from " + baseEnum.name + " to " + type.name)
+											end
+										end
+									else
+										error("type " + value + " does not exist")
+									end
+								else
+									if baseEnum.fieldExists(value)
+										context.level = context.level - 1
+										
+										enumField = baseEnum.getField(value)
+										
+										write("mov ebx,eax")
+										write("mov eax," + enumField.value.string)
+									else
+										error("enum " + baseEnum.name + " has no field " + value)
+									end								
+								end
+										
+								// Chained call if needed.
+								if getToken == Token.Dot then term(false, context)
 							end
 							
 							// Analyzing a class post-dot element.
@@ -574,7 +618,7 @@ module Compiler
 												
 												// Bool to int.
 												case BaseType.Int.int
-													write("movex eax,al")
+													write("movzx eax,al")
 												end
 												
 												// Bool to float.
@@ -723,7 +767,7 @@ module Compiler
 									context.type = type
 									
 									// Chained call.
-									if token(1) == Token.Dot then term(true, context)
+									if getToken == Token.Dot then term(false, context)
 									
 								// If we're working on a member variable.
 								elsif baseClass.fieldExists(value)
@@ -733,6 +777,7 @@ module Compiler
 									write("add eax," + field.offset.string)
 									
 									context.type = field.type
+									context.level = field.level
 									
 									// Indirects if possible.
 									if token(1) == Token.Dot 
@@ -820,9 +865,10 @@ module Compiler
 					if typeExists(name)
 						type = getType(name)
 						
+						context.type = type
+							
 						// Array instanciation.
 						if getToken == Token.Lp
-							context.type = type
 							context.level = context.level + 1
 							
 							// Get the expression which will yield a result on eax.
@@ -839,10 +885,11 @@ module Compiler
 							
 							getToken
 						else
-							context.type = type
+							context.level = 0
 						end
-						
-						context.level = 0
+
+						// Increase level by 1 if we're dealing with an enum.
+						if context.type.objectType == ObjectType.Enumeration then context.level = context.level + 1
 						
 					// Checking local class methods.
 					elsif bfunction.fclass != null and bfunction.fclass.functionExists(name)
@@ -874,22 +921,28 @@ module Compiler
 							
 							assembly.startBuffer
 							
-							// Explicit variable typing.
+							// Explicit local variable typing.
 							if token(1) == Token.As
+							
+								// Skip "as".
 								getToken
 								
-								// Variable's type.
+								// Retrieve the type to use.
 								if getToken == Token.Name
-									type = getType(value)
-									
-									// Array declaration.
-									if token(1) == Token.Lp
-									"array".print
-										primary(false, context)										
-									elsif token(1) == Token.Dot
-										write("mov ebx,eax")
-										expression(true, Context.new(context))
-										write("mov [ebx],eax")
+									if typeExists(value)
+										context.type = getType(value)
+										
+										// Array declaration.
+										if token(1) == Token.Lp
+										"array".print
+											primary(false, context)										
+										elsif token(1) == Token.Dot
+											write("mov ebx,eax")
+											expression(true, Context.new(context))
+											write("mov [ebx],eax")
+										end
+									else
+										error("type " + value + " does not exist")
 									end
 								end
 							elsif token(1) == Token.Assign
@@ -904,7 +957,8 @@ module Compiler
 							buffer = assembly.stopBuffer
 														
 							// Effectively creates the new variable.
-							variable = createVariable(name, context.type, 1)
+							// Increase by 1 the level, a variable can't be a plain value.
+							variable = createVariable(name, context.type, context.level + 1)
 						else
 							variable = getVariable(name)
 						end
@@ -912,10 +966,12 @@ module Compiler
 						context.type = variable.type
 						context.level = variable.level
 						
+						// Moves the current result to a secondary register.
+						write("mov ebx,eax")
+						
 						// Loading the variable address (either stack or heap).
 						switch variable.scope
 							case Scope.Local, Scope.Class
-								write("mov ebx,eax")
 								write("lea eax,[ebp-" + variable.offset.string + "]")
 							end
 							
@@ -958,6 +1014,10 @@ module Compiler
 						// Depending of the token, follow with different methods.
 						switch token	
 							case Token.Dot
+								
+								// Indirects if we're dealing with an enum variable
+								if context.type.objectType == ObjectType.Enumeration then indirects(context, variable.type)
+								
 								term(false, context)
 							end
 							
@@ -967,6 +1027,8 @@ module Compiler
 						
 							// Transforms address into data if the next token isn't linked to some kind of pointer work.
 							default
+							if variable.name == "cmodule" then "ok".print
+							
 								indirects(context, variable.type)
 							end
 						end
@@ -1068,8 +1130,16 @@ module Compiler
 				
 				// Returns to the end of the current block.
 				case Token.Return
-				//	expression(true, 
-					
+					if bfunction.returnType.id != BaseType.Void.int
+						type = expression(true, Context.new(bfunction.returnType)).type
+						
+						write("jmp end_" + bfunction.mangledName)
+						
+						// Checks the type returned by the expression.
+						if type.id != bfunction.returnType.id then error(bfunction.name + " must return " + bfunction.returnType.name)
+					else
+						error("return keyword out of place, function has no return type")
+					end
 				end
 				
 				// Logical test.
@@ -1236,8 +1306,8 @@ module Compiler
 				
 				// Infinite loop start.
 				case Token.Do
-					write(mangledName + "_do" + pointer.string + ":")					
 					addDepth(Token.Do, pointer)
+					write(mangledName + "_do" + getDepth(0).pointer.string + ":")
 				end
 				
 				// Looping.
@@ -1337,6 +1407,47 @@ module Compiler
 					end
 				end
 				
+				// Breaks the current loop.
+				case Token.Break
+					getToken
+					
+					if token == Token.Integer or token == Token.Eol
+						breakLevel = 1
+						currentLevel = 0
+						
+						// Get the quantity of depthes to break if possible.
+						if token == Token.Integer then breakLevel = value.int
+						
+						if breakLevel >= 1
+							i = 0
+							while i < depthCount
+								switch getDepth(i).type
+									case Token.Do
+										currentLevel++
+										if breakLevel == currentLevel then write("jmp " + mangledName + "_loop" + getDepth(i).pointer.string)
+									end
+									
+									case Token.While
+										currentLevel++
+										if breakLevel == currentLevel then write("jmp " + mangledName + "_endwhile" + getDepth(i).pointer.string)
+									end
+									
+									case Token.Repeat
+										currentLevel++
+										if breakLevel == currentLevel then write("jmp " + mangledName + "_until" + getDepth(i).pointer.string)
+									end
+								end
+							
+								i++
+							end
+						else
+							error("break level must be a positive integer")
+						end
+					else
+						error("unexpected keyword after break")
+					end
+				end
+				
 				// End an internal structure/depth.
 				case Token.End
 					if getDepth(0) != null
@@ -1410,7 +1521,7 @@ module Compiler
 					write("movzx eax,byte[eax]")
 				end
 				
-				default						
+				default			
 					write("mov eax,[eax]")
 				end
 			end
@@ -1446,7 +1557,10 @@ module Compiler
 				while token != Token.Eol
 					
 					// Check for the end of the parameters list.
-					if token == Token.Rp then break
+					if token == Token.Rp 
+						getToken
+						break
+					end
 					
 					// Comma : going to the next argument.
 					if token == Token.Comma
@@ -1507,9 +1621,11 @@ module Compiler
 					write("pop ebx")
 				end
 					
-			
+			// function.name.print 
+			// function.returnType.name.print
 				// Updating the current type with the one returned byt the function.
 				context.type = function.returnType
+				context.level = function.level
 			else			
 				if typeCount > 0
 					typeString = string.empty

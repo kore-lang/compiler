@@ -392,8 +392,13 @@ module Compiler
 					case Token.Name
 						name = value
 
+						// If there's an explicit assignation, we need to retrieve its value.
 						if getToken == Token.Assign
-							currentEnum.addField(name, value.int)
+							if getToken == Token.Integer
+								currentEnum.addField(name, value.int)
+							else
+								error("only integers can be assigned to an enumeration field")
+							end
 						elsif token == Token.Comma or token == Token.Eol
 							currentEnum.addField(name)
 						else

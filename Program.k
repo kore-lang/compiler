@@ -127,7 +127,7 @@ module Compiler
 			
 			files = Directory.files(sourcePath, "*.k")
 			while not files(i).isNull
-				this.addSource(Source.load(sourcePath + files(i)))
+				addSource(Source.load(sourcePath + files(i)))
 				i++
 			end
 		end
@@ -194,7 +194,13 @@ module Compiler
 		end
 		
 		def getAppModule as Module
-			return getModule(name.upperFirst)
+			if moduleCount >= 2
+				return modules(1)
+			else
+				"No application module found".print
+			end
+			
+			return null
 		end
 
 		// Add a module name.

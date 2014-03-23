@@ -46,8 +46,8 @@ module Compiler
 		/// 
 		/// </summary>
 		def addField(fieldName as string) as EnumField
-			lastValue++
-			return addField(fieldName, lastVale)
+			value++
+			return addField(fieldName, value)
 		end
 
 		/// <summary>
@@ -59,7 +59,7 @@ module Compiler
 				field = EnumField.new(fieldName, fieldValue)
 				fields(fieldCount) = field
 				fieldCount++
-				lastValue = fieldValue
+				value = fieldValue
 			else
 				("error : there is already a field '" + fieldName + "' in enum '" + name + "'").print
 			end
@@ -78,6 +78,26 @@ module Compiler
 			end
 
 			return null
+		end
+		
+		def getFieldValue(fieldName as string) as int
+			i = 0
+			while i < fieldCount
+				if fields(i).name == fieldName then return fields(i).value
+				i++
+			end
+
+			return -1
+		end
+		
+		def fieldExists(fieldName as string) as bool
+			i = 0
+			while i < fieldCount
+				if fields(i).name == fieldName then return true
+				i++
+			end
+
+			return false
 		end
 		
 		/// <summary>

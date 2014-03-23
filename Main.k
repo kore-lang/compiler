@@ -8,7 +8,7 @@ module Compiler
 	
 		entry = "_main"
 	
-		program = Program.load("F:\\kore-lang\\dev")
+		program = Program.load("F:\\kore-lang\\auto")
 		
 		Console.next
 		"Loading...".print
@@ -77,6 +77,8 @@ module Compiler
 			program.assemble("F:\\JadeBasic\\JadeBasic\\JadeBasic\\FASM.EXE", assembly)
 			program.link("F:\\JadeBasic\\JadeBasic\\JadeBasic\\polink.exe")
 			program.execute
+			
+			Console.pause
 		end
 	end
 end

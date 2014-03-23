@@ -6,7 +6,7 @@ module Compiler
 		bufferCount as int
 		
 		def new
-			limit = 30000
+			limit = 50000
 		
 			buffers = AssemblyBuffer(100)
 			buffers(0) = AssemblyBuffer.new(limit)

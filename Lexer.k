@@ -198,7 +198,7 @@ module Compiler
 						// When encountering a backslash, the characters are escaped.
 						if line.get(0) == "\\"
 							line = line.erase(1)
-							value = value + line.get(0)
+							//value = value + line.get(0)
 						end
 
 						value = value + line.get(0)
