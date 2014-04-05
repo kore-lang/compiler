@@ -49,6 +49,7 @@ module Compiler
 			setterArgument = null
 			binding = string.empty
 			
+         returnKey = "void"
 			returnType = null
 			
 			("Function : " + qualifiedName).print
@@ -72,7 +73,8 @@ module Compiler
 			
 			setterArgument = null
 			binding = string.empty
-			
+         
+			returnKey = "void"
 			returnType = null
 			
 			("Function : " + qualifiedName).print
@@ -96,7 +98,8 @@ module Compiler
 			
 			setterArgument = null
 			binding = string.empty
-			
+         
+			returnKey = "void"
 			returnType = null
 			
 			("Function : " + qualifiedName).print
@@ -188,11 +191,12 @@ module Compiler
 		// Links types to every usage.
 		def linkTypes
 			i = 0
-			while i < argumentCount
+              
+			while i < argumentCount         
 				arguments(i).type = fmodule.getType(arguments(i).key)
 				i++
 			end
-			
+                  
 			// Links the return type.
 			returnType = fmodule.getType(returnKey)
 		end

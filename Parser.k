@@ -127,34 +127,69 @@ module Compiler
 					case Token.Def
 						if token(-1) == Token.Eol
 							if getToken == Token.Name
-								function = currentModule.addFunction(value)
+								newFunction = currentModule.addFunction(value)
 
 								if getToken == Token.Lp
 									if getToken != Token.Rp
 										repeat
-// PARSE ARGS
+											if token == Token.Name		
+
+												// Waiting for the typing of the argument.
+												if token(1) == Token.As
+													newArgument = newFunction.addArgument(value)
+													newArgument.level = 1
+													
+													getToken
+													
+													// The type name is required.
+													if getToken == Token.Name
+														newArgument.key = value
+														
+														// If the parameter is an array, we increase its level.
+														if token(1) == Token.Array
+															getToken
+															newArgument.level = newArgument.level + 1
+														end
+													else
+														error("type name waited after 'as' keyword")
+													end
+												else
+													newArgument = newFunction.createAnonymousArgument(value)
+													requireAlias = true
+												end
+												
+												// Arguments must be separated by a comma, if it's not the case, we throw an error.
+												if token(1) == Token.Comma
+													getToken
+												elsif token(1) != Token.Rp
+													error("arguments must be separated by a comma")
+												end
+											end
 										until getToken == Token.Rp
-
-										getToken
 									else
-										error("argument list for " + function.name + " is empty")
+										error("argument list is empty")
 									end
+									
+									getToken
 								else
-// NO ARG
-								end	
-
-								switch token
-									case Token.Alias
-									end
-
-									case Token.As
-									end
-
-									case Token.Assign
-									end
+								
+									// No arguments : creating an empty one.
+								//	newArgument = newFunction.addArgument("")
+								//	newArgument.key = "void"
 								end
 
-								parse(function.block)
+								// switch token
+									// case Token.Alias
+									// end
+
+									// case Token.As
+									// end
+
+									// case Token.Assign
+									// end
+								// end
+
+								parse(newFunction.block)
 							end
 						end
 					end
@@ -332,9 +367,6 @@ module Compiler
 										
 										getToken
 									end
-									
-									// Defaults to void return if not explicitly typed.
-									if newFunction.returnKey == null then newFunction.returnKey = "void"
 									
 									// Setter function.
 									if token == Token.Assign

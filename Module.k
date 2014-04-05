@@ -275,7 +275,7 @@ module Compiler
 		
 		def linkTypes
 			linked = 0
-						
+         
 			while linked < typeCount			
 				linked = 0
 				
@@ -299,7 +299,7 @@ module Compiler
 					i++
 				end
 			end
-
+         
 			// Linking module functions.
 			i = 0
 			while i < functionCount
@@ -314,7 +314,12 @@ module Compiler
 			assembly.write("push ebp")
 			assembly.write("mov ebp,esp")
 			
-            if this.functionExists("main") then assembly.write("call " + getFunction("main").mangledName)
+            if functionExists("main")
+				assembly.write("push dword[ebp+12]")
+				assembly.write("push dword[ebp+8]")
+				assembly.write("call " + getFunction("main").mangledName)
+				assembly.write("add esp,8")
+			end
 
             assembly.write("pop ebp")
             assembly.write("ret")
