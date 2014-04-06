@@ -2,31 +2,21 @@ module Compiler
 	/// <summary>
 	/// Represents a memory field of a structure.
 	/// </summary>
-	class Field		
+	class Field						
 		/// <summary>
-		///	Field unique ID, relative to its parent.
+		///	Variable's name.
 		/// </summary>
-		id as int
-		
-		/// <summary>
-		///	Indirect level of the variable. Typically, 0 = value type, 1 = object, 2 and above = array.
-		/// </summary>
-		level as int
-		
+		name as string
+				
 		/// <summary>
 		///	Memory offset of the variable in its parent context.
 		/// </summary>
 		offset as int
 		
 		/// <summary>
-		///	Define if the variable is nullable or not.
+		///	Indirect level of the variable. Typically, 0 = value type, 1 = object, 2 and above = array.
 		/// </summary>
-		order as int
-						
-		/// <summary>
-		///	Variable's name.
-		/// </summary>
-		name as string
+		level as int
 		
 		/// <summary>
 		/// Type of the variable.
@@ -40,11 +30,16 @@ module Compiler
 		///	Indicates whether the variable is nullable or not.
 		/// </summary>
 		isNullable as bool
+		
+		// Constructs a new field.
 		def new(fieldName as string)
 			name = fieldName
 			
 			offset = 0
 			level = 0
+			
+			key = "void"
+			type = null
 			
 			isNullable = false
 			
@@ -60,6 +55,9 @@ module Compiler
 			
 			offset = 0
 			level = 0
+			
+			key = "void"
+			type = null
 			
 			isNullable = false
 			

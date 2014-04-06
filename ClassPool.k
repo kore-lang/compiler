@@ -5,6 +5,7 @@ module Compiler
 
 		def new
 			classes = Class(100)
+			count = 0
 		end
 
 		def addClass(poolClass as Class)

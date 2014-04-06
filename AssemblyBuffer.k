@@ -4,12 +4,12 @@ module Compiler
 		lineCount as int
 		limit as int
 		
+		// Creates a new assembly buffer.
 		def new(bufferSize as int)
 			lines = string(bufferSize)
 			lineCount = 0
 			limit = bufferSize
-		end
-		
+		end		
 		
 		// Add the line at the end of the buffer.
 		def write(line as string)
@@ -24,6 +24,7 @@ module Compiler
 			lines(number) = line
 		end
 	
+		// Write the content of the current assembly to the given one.
 		def writeTo(assembly as Assembly)
 			i = 0
 			while i < lineCount
@@ -32,6 +33,7 @@ module Compiler
 			end
 		end
 				
+		// Jump to the next line.
 		def jump as int
 			lines(lineCount) = string.empty
 			lineCount++

@@ -1,14 +1,8 @@
 module Compiler
-	/// <summary>
-	/// List of code structures
-	/// </summary>
+	// List of code structures
 	enum Structure
-			
-		/// <summary>
-		/// Class
-		/// </summary>
-		Class,
-		Enumeration,
+		Class
+		Enumeration
 		Module
 	end
 end

@@ -11,6 +11,8 @@ module Compiler
 		def new(contextType as Type)
 			type = contextType
 			
+			level = 0
+			
 			isAssignable = true
 			isAddress = false
 			isNullable = false

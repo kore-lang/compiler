@@ -3,7 +3,6 @@ module Compiler
 		name as string
 		binding as string
 
-		returnArgument as Field
 		returnKey as string
 		returnType as Type
 
@@ -47,10 +46,14 @@ module Compiler
 			_argumentSize = -1
 			
 			setterArgument = null
+			setterTypeName = "void"
 			binding = string.empty
 			
-         returnKey = "void"
+			returnKey = "void"
 			returnType = null
+			
+			type = null
+			level = 0
 			
 			("Function : " + qualifiedName).print
 		end
@@ -72,10 +75,14 @@ module Compiler
 			_argumentSize = -1
 			
 			setterArgument = null
+			setterTypeName = "void"
 			binding = string.empty
          
 			returnKey = "void"
 			returnType = null
+			
+			type = null
+			level = 0
 			
 			("Function : " + qualifiedName).print
 		end
@@ -97,10 +104,14 @@ module Compiler
 			_argumentSize = -1
 			
 			setterArgument = null
+			setterTypeName = "void"
 			binding = string.empty
          
 			returnKey = "void"
 			returnType = null
+			
+			type = null
+			level = 0
 			
 			("Function : " + qualifiedName).print
 		end

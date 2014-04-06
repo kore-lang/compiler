@@ -1,8 +1,8 @@
 module Compiler
-	class Using
-		isLoaded as bool
-		
+	class Using		
 		name as string
+		
+		isLoaded as bool
 		
 		def new(usingName as string)
 			name = usingName

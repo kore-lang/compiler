@@ -1,5 +1,7 @@
 module Compiler
-	class Block
+	class Block		
+		limit as int
+		
 		id as int
 		stack as int
 		
@@ -18,14 +20,14 @@ module Compiler
 		
 		bfunction as Function
 		
-		limit as int
-		
 		def new(blockFunction as Function)
 			limit = 5000
 			
 			id = 0
 			stack = 0
 		
+			pointer = 0
+			
 			tokens = LexToken(limit)
 			tokenCount = 0
 
@@ -33,9 +35,7 @@ module Compiler
 			depthCount = 0
 
 			variables = Variable(100)
-			variableCount = 0
-			
-			pointer = 0
+			variableCount = 0			
 			
 			bfunction = blockFunction
 			
@@ -1521,7 +1521,7 @@ module Compiler
 					write("movzx eax,byte[eax]")
 				end
 				
-				default			
+				default
 					write("mov eax,[eax]")
 				end
 			end

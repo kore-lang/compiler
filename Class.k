@@ -25,18 +25,25 @@ module Compiler
 		def new(className as string, classModule as Module)
 			name = className	
 			cmodule = classModule
+			type = null
 			
 			fields = Field(100)
 			fieldCount = 0
-			
+						
 			functions = Function(100)
 			functionCount = 0
+			
+			inheritKey = "void"
+			inheritType = null
+			
+			size = 0
 			
 			("Class : " + qualifiedName).print
 		end
 
 		def new(className as string, classType as Type)
 			name = className
+			cmodule = null
 			type = classType
 
 			fields = Field(100)
@@ -44,6 +51,11 @@ module Compiler
 			
 			functions = Function(100)
 			functionCount = 0
+			
+			inheritKey = "void"
+			inheritType = null
+			
+			size = 0
 						
 			("Class : " + qualifiedName).print
 		end

@@ -22,14 +22,14 @@ module Compiler
 		def new(moduleName as string, moduleProgram as Program)
 			name = moduleName
 			
+			includes = string(100)	
+			includeCount = 0
+			
 			classes = Class(100)
 			classCount = 0
 
 			functions = Function(100)
 			functionCount = 0
-
-			includes = string(100)	
-			includeCount = 0
 
 			enums = Enum(100)
 			enumCount = 0

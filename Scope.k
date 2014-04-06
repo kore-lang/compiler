@@ -7,16 +7,19 @@ module Compiler
 		/// <summary>
 		/// Class scope for classes elements (static).
 		/// </summary>
-		Class,
+		Class
 		
 		/// <summary>
 		/// Instance scope for object related elements.
 		/// </summary>
-		Instance,
+		Instance
 		
 		/// <summary>
 		/// Local scope for method related elements.
 		/// </summary>
 		Local
+		
+		// Scopeless.
+		None
 	end
 end

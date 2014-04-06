@@ -39,6 +39,12 @@ module Compiler
 			i++
 		end
       
+		// Compiler development test config.
+		arguments.add("project", "F:\\kore-lang\\kore\\projects\\sample")
+		arguments.add("libpath", "F:\\kore-lang\\kore\\libraries")
+		arguments.add("platform", "windows")
+		arguments.add("execute", string.empty)
+      
 		Console.next
 	
 		entry = "_main"

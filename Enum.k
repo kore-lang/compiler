@@ -34,10 +34,12 @@ module Compiler
 		def new(enumName as string)
 			name = enumName
 
+			value = 0
+
 			fields = EnumField(100)
 			fieldCount = 0
-
-			value = 0
+			
+			type = null
 
 			("Create enum " + name).print
 		end

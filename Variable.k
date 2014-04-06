@@ -37,11 +37,15 @@ module Compiler
 		/// </summary>
 		isUsed as bool
 		
-		def new(variableName as string)
+		def new(variableName as string)			
+			name = variableName
+			
 			offset = 0
 			level = 0
 			
-			name = variableName
+			scope = Scope.None
+			
+			type = null
 			
 			isAssigned = false
 			isNullable = false

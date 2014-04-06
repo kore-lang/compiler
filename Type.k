@@ -24,17 +24,25 @@ module Compiler
 		isValid as bool
 		
 		def new(typeSize as int)
-			isValid = false
+			id = 0
+			name = string.empty
+			
+			objectType = ObjectType.None
 			
 			size = typeSize
+			
+			isValid = false
 		end
 		
-		def new(typeId as int, typeName as string, typeSize as int)
-			isValid = false
-			
-			id = typeId
+		def new(typeId as int, typeName as string, typeSize as int)			
+			id = typeId			
 			name = typeName
+			
+			objectType = ObjectType.None
+			
 			size = typeSize
+			
+			isValid = false
 		end
 		
 		def print

@@ -58,8 +58,10 @@ module Compiler
 			
 			typeCount = m.typeCount
 			
-         // Outputs the program's name.
-   		Console.next
+			includeString = string.empty
+			
+			// Outputs the program's name.
+			Console.next
 			("Create program " + name).print
 		end
 		
@@ -295,8 +297,8 @@ module Compiler
 				i++
 			end
 			
-         command = command + " Kore_String.lib"
-         command = command + " Kore_Int.lib"
+			command = command + " Kore_String.lib"
+			command = command + " Kore_Int.lib"
 			
 			command = command + includeString
 			

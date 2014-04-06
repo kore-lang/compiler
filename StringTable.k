@@ -6,11 +6,11 @@ module Compiler
 		keys as string()		
 		values as string()
 	
-		def new
+		def new			
+			count = 0
+			
 			keys = string(100)
 			values = string(100)
-			
-			count = 0
 		end
 		
 		def add(key as string, value as string)
