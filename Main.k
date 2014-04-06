@@ -4,10 +4,14 @@ module Compiler
 	def main(argc as int, argv as string())
 		"Kore Compiler - v0.100".print
 		
-      Console.next
+		Console.next
       
 		arguments = StringTable.new
 		      
+		// Keep the compiler path.
+      path = Directory.current
+      arguments.add("path", path)
+			  
 		// Build the compiler arguments table.
 		i = 1
 		while i < argc
@@ -15,7 +19,7 @@ module Compiler
          
 			// Checks that we received real arguments.
 			if argument.get(0) == "/"
-				splitterIndex = argument.firstOf(":")
+				splitterIndex = argument.indexOf(":")
 				
 				// Retrieves key and value for the argument.
 				if splitterIndex == -1
@@ -34,7 +38,7 @@ module Compiler
          
 			i++
 		end
-		
+      
 		Console.next
 	
 		entry = "_main"
@@ -43,22 +47,22 @@ module Compiler
       project = arguments.get("project")
       if !project.isNull
 	  
-		// Removes the terminating slash/backslash if there is one.
-		if project.get(project.length - 1) == "\\" or project.get(project.length - 1) == "/" 
-			project = project.subString(0, project.length - 1)
-		end			
+   		// Removes the terminating slash/backslash if there is one.
+   		if project.get(project.length - 1) == "\\" or project.get(project.length - 1) == "/" 
+   			project = project.subString(0, project.length - 1)
+   		end			
 
    		program = Program.load(project)
    		
    		Console.next
    		"Loading...".print
-   								
-   		program.loadLibraries("F:\\JadeBasic\\JadeBasic\\JadeBasic\\Headers\\")
-   			
-   		program.addLibraryPath("Libraries\\DirectX9")
-   		program.addLibraryPath("Libraries\\JadeLibrary")
-   		program.addLibraryPath("Libraries\\Windows")
-   
+           
+         // Adds the using for the current platform.
+         program.addUsing(arguments.get("platform").upperFirst)
+         
+         // Loads the libraries.
+         program.loadLibraries(arguments.get("libpath"))
+
    		Console.next
    		"Lexing...".print
    		
@@ -75,7 +79,10 @@ module Compiler
    		
    		program.loadUsing(appModule)
    		
+         // Try to build the sources only if the type check is valid.
    		if appModule.checkTypes
+         
+            // Links type usage to their types.
    			appModule.linkTypes
    			
    			Console.next
@@ -103,10 +110,8 @@ module Compiler
    			assembly.write(entry + ":")
    			
    			moduleAssembly.writeTo(assembly)
-   			//appModule.showTypes
    			
    			assembly.write("extrn '_malloc' as malloc:dword")
-   			assembly.write("extrn '_core_array_start' as array:dword")
    			assembly.write("extrn '_String_Add' as _add_string:dword")
    			assembly.write("extrn '_String_Compare' as _cmp_string:dword")
    			assembly.write("extrn '_String_ToInt' as _string_toint:dword")
@@ -114,8 +119,8 @@ module Compiler
    						
    			program.includeString = appModule.includeString
    						
-   			program.assemble("F:\\JadeBasic\\JadeBasic\\JadeBasic\\FASM.EXE", assembly)
-   			program.link("F:\\JadeBasic\\JadeBasic\\JadeBasic\\polink.exe")
+   			program.assemble("Tools\\fasm.exe", assembly)
+   			program.link("Tools\\polink.exe", arguments.get("libpath"))
             
             // Executes the program only if asked.
             if arguments.hasKey("execute") then program.execute

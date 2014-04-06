@@ -166,7 +166,7 @@ module Compiler
 				functions(functionCount) = function
 				functionCount++
 			else
-				("there is already a function '" + functionName + "' in " + qualifiedName).print
+				("There is already a function '" + functionName + "' in " + qualifiedName).print
 			end
 
 			return function
@@ -209,7 +209,7 @@ module Compiler
 				
 				menum.type = type
 			else
-				("there is already an enum '" + enumName + "' in " + qualifiedName).print
+				("There is already an enum '" + enumName + "' in " + qualifiedName).print
 			end
 
 			return menum

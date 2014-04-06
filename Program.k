@@ -9,7 +9,7 @@ module Compiler
 		moduleCount as int
 
 		// Used module names.
-		usings as string()
+		usings as Using()
 		usingCount as int
 		
 		// Library pathes.
@@ -39,7 +39,7 @@ module Compiler
 			modules = Module(10)
 			moduleCount = 0
 
-			usings = string(10)
+			usings = Using(10)
 			usingCount = 0
 			
 			pathes = string(10)
@@ -58,6 +58,8 @@ module Compiler
 			
 			typeCount = m.typeCount
 			
+         // Outputs the program's name.
+   		Console.next
 			("Create program " + name).print
 		end
 		
@@ -122,14 +124,18 @@ module Compiler
 			sourceCount++
 		end
 		
+      // Load sources.
 		def loadSources(sourcePath as string)
-			i = 0
-			
-			files = Directory.files(sourcePath, "*.k")
-			while not files(i).isNull
-				addSource(Source.load(sourcePath + files(i)))
-				i++
-			end
+         if Directory.exists(sourcePath)
+   			i = 0
+            
+            // Loads any file with the right extension. 
+   			files = Directory.files(sourcePath, "*.k")
+   			while not files(i).isNull
+   				addSource(Source.load(sourcePath + files(i), this))
+   				i++
+   			end
+         end
 		end
 		
 		def lines as CodeLine()
@@ -166,8 +172,9 @@ module Compiler
 			pathCount++
 		end
 		
-		def loadLibraries(libPath as string)
-			this.loadSources(libPath)
+      // Loads the inclusions from the given path.
+		def loadIncludes(path as string)
+			loadSources(path)
 		end
 
 		def addModule(moduleName as string) as Module
@@ -203,24 +210,57 @@ module Compiler
 			return null
 		end
 
-		// Add a module name.
+		// Add a module to the using list.
 		def addUsing(usingName as string)
-			usings(usingCount) = usingName
-			usingCount++
-			("Using " + usingName).print
+         if !usingExist(usingName)
+			   usings(usingCount) = Using.new(usingName)
+			   usingCount++
+			   ("Using " + usingName).print
+         end
 		end
+      
+      // Checks if the using already exists or not.
+      def usingExist(usingName as string) as bool
+         i = 0
+         while i < usingCount
+            if usings(i).name == usingName then return true
+            i++
+         end
+         
+         return false
+      end
+      
+      // Loads libraries (both includes and libs pathes).
+      def loadLibraries(libPath as string)
+         loaded = 0
+         while loaded < usingCount
+            
+            // Loads unloaded includes.
+            i = 0
+            while i < usingCount
+               if !usings(i).isLoaded 
+                  loadIncludes(libPath + "\\" + usings(i).name + "\\Include\\")
+                  usings(i).isLoaded = true
+                  loaded++
+               end
+               i++
+            end
+         end
+         
+         // Adding lib pathes.
+         i = 0
+         while i < usingCount
+            addLibraryPath(libPath + "\\" + usings(i).name + "\\Lib")
+            i++
+         end
+      end
 		
+      // Loads the content of the loaded modules into the one compiled.
 		def loadUsing(appModule as Module)
-			i = 0
-			j = 0
-			
+			i = 0			
 			while i < usingCount
-				sourceModule = getModule(usings(i))
-				if sourceModule != null
-					appModule.loadModule(sourceModule)
-				else
-					("there is no module " + usings(i)).print
-				end
+				sourceModule = getModule(usings(i).name)
+				if sourceModule != null then appModule.loadModule(sourceModule)
 				i++
 			end
 		end
@@ -242,7 +282,7 @@ module Compiler
 			process.execute(fileName)
 		end
 		
-		def link(linker as string)
+		def link(linker as string, compilerPath as string)
 			Console.next
 			"Linking...".print
 			
@@ -255,16 +295,15 @@ module Compiler
 				i++
 			end
 			
-			command = command + " Core\\Jade_Core.obj"
-            command = command + " Core\\Jade_String.lib"
-            command = command + " Core\\Kore_Int.lib"
+         command = command + " Kore_String.lib"
+         command = command + " Kore_Int.lib"
 			
 			command = command + includeString
 			
 			command = command + " /SUBSYSTEM:CONSOLE /FORCE:MULTIPLE"
 												
 			// Execute the linker
-			process = Process.new(linker, "F:\\JadeBasic\\JadeBasic\\JadeBasic\\")
+			process = Process.new(linker, compilerPath)
 			process.execute(command)
 		end
 		
